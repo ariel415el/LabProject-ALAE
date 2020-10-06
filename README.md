@@ -4,7 +4,16 @@ The paper: https://arxiv.org/abs/2004.04467 \
 Official implementation https://github.com/podgorskiy/ALAE
 
 # Step one:
-Implement ALAE with linear encoder and decoder and compare with optimal solution (PCA)
+Implement ALAE with linear encoder and decoder and compare with PCA which is the optimal linear encoder. 
+1. Understanding PCA: PCA could be looked at as projected variance maximization 
+    or reconstrcion loss minimization problems under the constraint that the encoding Linear
+    matrix is orthonormal.
+    the PCA foler shows how gradient decent optimization of the above problems leads to the 
+    same solution as the analytic PCA solution for the problem
+2. Implement ALAE with linear encoders and generator.
+3. Compare various auto-encoders on various datasets in terms of reconstruction loss
+4  Compare various auto-encoders by accuracy of clasifiers trained on their encodings 
+    of classification datasets (e.g MNIST)
 ##### Relevant materials #####
 - PCA: two sided problem: http://alexhwilliams.info/itsneuronalblog/2016/03/27/pca/
 

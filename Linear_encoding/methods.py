@@ -110,7 +110,8 @@ class NumericMinimizationPCA(LinearAutoEncoder):
             losses[1] += [constraint_loss.item()]
 
         # plot training
-        plot_training(losses, ["reconstruction_loss", "constrain_loss"], self.outputs_dir, self.name)
+        if self.outputs_dir:
+            plot_training(losses, ["reconstruction_loss", "constrain_loss"], self.outputs_dir, self.name)
 
         C = C.detach().numpy()
 
@@ -157,8 +158,8 @@ class VanilaAE(LinearAutoEncoder):
             optimizer.zero_grad()
 
             losses[0] += [loss.item()]
-
-        plot_training(losses, ["reconstruction_loss"], self.outputs_dir, self.name)
+        if self.outputs_dir:
+            plot_training(losses, ["reconstruction_loss"], self.outputs_dir, self.name)
 
         self.projection_matrix = E.detach().numpy()
         self.restoration_matrix = D.detach().numpy()
@@ -222,7 +223,8 @@ class ALAE(LinearAutoEncoder):
             losses[2] += [L_err_EG.item()]
 
         # plot training
-        plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], self.outputs_dir, self.name)
+        if self.outputs_dir:
+            plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], self.outputs_dir, self.name)
 
         self.projection_matrix = E.weight.t().detach().numpy()
         self.restoration_matrix = G.weight.t().detach().numpy()
