@@ -1,4 +1,4 @@
-from sklearn import datasets
+from sklearn import datasets as sk_datasets
 import numpy as np
 import matplotlib.pyplot as plt
 from torchvision import datasets as tv_datasets
@@ -11,7 +11,7 @@ def get_swiss_roll(plot=False):
     '''
 
     # load the dataset:
-    X, color = datasets.make_swiss_roll(n_samples=4000)
+    X, color = sk_datasets.make_swiss_roll(n_samples=4000)
 
     if plot:
         # plot the data:
@@ -55,7 +55,7 @@ def get_sklearn_digits(plot=False):
     '''
 
     # load the 8x8 digits  data:
-    digits = datasets.load_digits()
+    digits = sk_datasets.load_digits()
     data = digits.data / 255.
     labels = digits.target
     if plot:

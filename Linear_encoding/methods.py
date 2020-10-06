@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import os
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 COLORS =['r', 'g', 'b']
 
 
@@ -75,7 +76,7 @@ class NumericMinimizationPCA(LinearAutoEncoder):
 
         losses = [[], []]
 
-        for s in range(self.optimization_steps):
+        for s in tqdm(range(self.optimization_steps)):
             projected_data = torch.matmul(X, C)
             reconstruct_data = torch.matmul(projected_data, C.t())
             reconstruction_loss = torch.nn.functional.mse_loss(X, reconstruct_data)
@@ -130,7 +131,7 @@ class VanilaAE(LinearAutoEncoder):
 
         losses = [[]]
 
-        for s in range(self.optimization_steps):
+        for s in tqdm(range(self.optimization_steps)):
             projected_data = torch.matmul(X, E)
             reconstruct_data = torch.matmul(projected_data, D)
             loss = torch.nn.functional.mse_loss(X, reconstruct_data)
@@ -175,7 +176,7 @@ class ALAE(LinearAutoEncoder):
 
         losses = [[], [], []]
 
-        for s in range(self.optimization_steps):
+        for s in tqdm(range(self.optimization_steps)):
             # Step I. Update E, and D
             ED_optimizer.zero_grad()
             batch_real_data = X[torch.randint(N, (self.batch_size,))]
