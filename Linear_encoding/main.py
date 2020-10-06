@@ -58,6 +58,8 @@ if __name__ == '__main__':
     endcode_data(data, os.path.join(output_dir, dataset_name), latent_space)
 
     labels_array = np.loadtxt(os.path.join(os.path.join(output_dir, dataset_name, 'projected_datasets', "labels.txt")))
+    accuracy = train_sklearn_digits(data, labels, epochs=30)
+    print(f"Data: original_data, accuracy: {accuracy}")
     for fname in os.listdir(os.path.join(output_dir, dataset_name, 'projected_datasets')):
         if fname == "labels.txt":
             continue

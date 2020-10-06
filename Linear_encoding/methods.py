@@ -29,7 +29,6 @@ def plot_training(losses, names, plots_dir, plot_name):
         ax = fig.add_subplot(1, len(losses), 1 + i)
         ax.set_title(name)
         ax.plot(np.arange(len(loss_list)), loss_list)
-        ax.legend()
     plt.savefig(os.path.join(plots_dir, plot_name + ".png"))
 
 
@@ -114,10 +113,11 @@ class NumericMinimizationPCA(LinearAutoEncoder):
 
 
 class VanilaAE(LinearAutoEncoder):
-    def __init__(self, training_dir, optimization_steps=1000, lr=0.001):
-        super(VanilaAE, self).__init__(f"VanilaAE_s[{optimization_steps}]_lr[{lr}]", training_dir)
+    def __init__(self, training_dir, optimization_steps=1000, lr=0.001, batch_size=64):
+        super(VanilaAE, self).__init__(f"VanilaAE_s[{optimization_steps}]_lr[{lr}_b[{batch_size}]", training_dir)
         self.optimization_steps = optimization_steps
         self.lr = lr
+        self.batch_size = batch_size
 
     def compute_encoder_decoder(self, data, laten_dim):
         """
@@ -132,9 +132,10 @@ class VanilaAE(LinearAutoEncoder):
         losses = [[]]
 
         for s in tqdm(range(self.optimization_steps)):
-            projected_data = torch.matmul(X, E)
+            batch_X = X[torch.randint(X.shape[0], (self.batch_size,))]
+            projected_data = torch.matmul(batch_X, E)
             reconstruct_data = torch.matmul(projected_data, D)
-            loss = torch.nn.functional.mse_loss(X, reconstruct_data)
+            loss = torch.nn.functional.mse_loss(batch_X, reconstruct_data)
 
             loss.backward()
             optimizer.step()
