@@ -1,14 +1,14 @@
 import numpy as np
 import torch
-from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
 COLORS =['r', 'g', 'b']
 
 
 class LinearAutoEncoder(object):
-    def __init__(self, name):
+    def __init__(self, name, outputs_dir=None):
         self.name = name
+        self.outputs_dir = outputs_dir
 
     def __str__(self):
         return self.name
@@ -22,21 +22,19 @@ class LinearAutoEncoder(object):
         raise NotImplementedError
 
 
-def plot_training(losses, names, plot_name):
-    # os.makedirs(outdir, exist_ok=True)
+def plot_training(losses, names, plots_dir, plot_name):
     fig = plt.figure(figsize=(10, 6))
-    # max_loss = max([max(L) for L in losses])
     for i, (loss_list, name) in enumerate(zip(losses, names)):
         ax = fig.add_subplot(1, len(losses), 1 + i)
         ax.set_title(name)
         ax.plot(np.arange(len(loss_list)), loss_list)
-    plt.legend()
-    plt.savefig(os.path.join(plot_name + ".png"))
+        ax.legend()
+    plt.savefig(os.path.join(plots_dir, plot_name + ".png"))
 
 
 class AnalyticalPCA(LinearAutoEncoder):
     def __init__(self):
-        super(AnalyticalPCA, self).__init__("LinearAutoEncoder")
+        super(AnalyticalPCA, self).__init__("AnalyticalPCA")
 
     def compute_encoder_decoder(self, data, laten_dim):
         """
@@ -55,8 +53,8 @@ class AnalyticalPCA(LinearAutoEncoder):
 
 
 class NumericMinimizationPCA(LinearAutoEncoder):
-    def __init__(self, optimization_steps=1000, lr=0.001, regularization_factor=1):
-        super(NumericMinimizationPCA, self).__init__(f"NumericMinimizationPCA_s[{optimization_steps}]_lr[{lr}]_r[{regularization_factor}]")
+    def __init__(self, training_dir, optimization_steps=1000, lr=0.001, regularization_factor=1):
+        super(NumericMinimizationPCA, self).__init__(f"NumericMinimizationPCA_s[{optimization_steps}]_lr[{lr}]_r[{regularization_factor}]", training_dir)
         self.optimization_steps = optimization_steps
         self.regularization_factor = regularization_factor
         self.lr = lr
@@ -77,7 +75,7 @@ class NumericMinimizationPCA(LinearAutoEncoder):
 
         losses = [[], []]
 
-        for s in tqdm(range(self.optimization_steps)):
+        for s in range(self.optimization_steps):
             projected_data = torch.matmul(X, C)
             reconstruct_data = torch.matmul(projected_data, C.t())
             reconstruction_loss = torch.nn.functional.mse_loss(X, reconstruct_data)
@@ -96,7 +94,7 @@ class NumericMinimizationPCA(LinearAutoEncoder):
             losses[1] += [constraint_loss.item()]
 
         # plot training
-        plot_training(losses, ["reconstruction_loss", "constrain_loss"], self.name + "_training")
+        plot_training(losses, ["reconstruction_loss", "constrain_loss"], self.outputs_dir, self.name)
 
         C = C.detach().numpy()
 
@@ -115,8 +113,8 @@ class NumericMinimizationPCA(LinearAutoEncoder):
 
 
 class VanilaAE(LinearAutoEncoder):
-    def __init__(self, optimization_steps=1000, lr=0.001):
-        super(VanilaAE, self).__init__(f"VanilaAE_s[{optimization_steps}]_lr[{lr}]")
+    def __init__(self, training_dir, optimization_steps=1000, lr=0.001):
+        super(VanilaAE, self).__init__(f"VanilaAE_s[{optimization_steps}]_lr[{lr}]", training_dir)
         self.optimization_steps = optimization_steps
         self.lr = lr
 
@@ -132,7 +130,7 @@ class VanilaAE(LinearAutoEncoder):
 
         losses = [[]]
 
-        for s in tqdm(range(self.optimization_steps)):
+        for s in range(self.optimization_steps):
             projected_data = torch.matmul(X, E)
             reconstruct_data = torch.matmul(projected_data, D)
             loss = torch.nn.functional.mse_loss(X, reconstruct_data)
@@ -143,18 +141,14 @@ class VanilaAE(LinearAutoEncoder):
 
             losses[0] += [loss.item()]
 
-        plot_training(losses, ["reconstruction_loss"], self.name + "_training")
+        plot_training(losses, ["reconstruction_loss"], self.outputs_dir, self.name)
 
         return E.detach().numpy(), D.detach().numpy()
 
 
-# class noisyLinear(torch.nn.Module):
-#     def __init__(self):
-#         super(noisyLinear, self).__init__()
-
 class ALAE(LinearAutoEncoder):
-    def __init__(self, z_dim=32, optimization_steps=1000, lr=0.002, batch_size=64):
-        super(ALAE, self).__init__(f"ALAE_z_dim[{z_dim}]_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]")
+    def __init__(self, training_dir, z_dim=32, optimization_steps=1000, lr=0.002, batch_size=64):
+        super(ALAE, self).__init__(f"ALAE_z_dim[{z_dim}]_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]", training_dir)
         self.optimization_steps = optimization_steps
         self.lr = lr
         self.z_dim = z_dim
@@ -181,7 +175,7 @@ class ALAE(LinearAutoEncoder):
 
         losses = [[], [], []]
 
-        for s in tqdm(range(self.optimization_steps)):
+        for s in range(self.optimization_steps):
             # Step I. Update E, and D
             ED_optimizer.zero_grad()
             batch_real_data = X[torch.randint(N, (self.batch_size,))]
@@ -210,7 +204,7 @@ class ALAE(LinearAutoEncoder):
             losses[2] += [L_err_EG.item()]
 
         # plot training
-        plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], self.name + "_training")
+        plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], self.outputs_dir, self.name)
 
         encoder = E.weight.t().detach().numpy()
         decoder = G.weight.t().detach().numpy()
