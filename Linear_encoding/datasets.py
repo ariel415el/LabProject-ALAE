@@ -37,16 +37,22 @@ def get_swiss_roll(plot=False):
 
 
 def get_mnist(data_dir="data"):
-    transform=transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-        ])
-    train_dataset = tv_datasets.MNIST(data_dir, train=True, download=True,
-                       transform=transform)
-    test_dataset = tv_datasets.MNIST(data_dir, train=True, download=True,
-                       transform=transform)
+    mnist_mean = 0.1307
+    mnist_std = 0.3081
+    # transform=transforms.Compose([
+    #     transforms.ToTensor(),
+    #     transforms.Normalize((0.1307,), (0.3081,))
+    #     ])
+    train_dataset = tv_datasets.MNIST(data_dir, train=True, download=True)
+    test_dataset = tv_datasets.MNIST(data_dir, train=False, download=True)
 
-    return train_dataset.data.numpy().reshape(-1,28*28), train_dataset.train_labels.numpy(), "MNIST"
+    train_data, train_labels = train_dataset.data.numpy().reshape(-1, 28*28), train_dataset.train_labels.numpy()
+    test_data, test_labels = test_dataset.data.numpy().reshape(-1, 28*28), test_dataset.train_labels.numpy()
+
+    train_data = (train_data - mnist_mean) / mnist_std
+    test_data = (test_data - mnist_mean) / mnist_std
+
+    return train_data, train_labels, test_data, test_labels, "MNIST"
 
 
 def get_sklearn_digits(plot=False):
@@ -68,7 +74,10 @@ def get_sklearn_digits(plot=False):
             plt.title("Digit " + str(labels[i]))
         plt.show()
 
-    return data, labels, "sklearn_digits"
+    d = int(data.shape[0]*0.9)
+    train_data, train_labels = data[:d], labels[:d]
+    test_data, test_labels = data[d:], labels[d:]
+    return train_data, train_labels, test_data, test_labels, "sklearn_digits"
 
 
 def get_synthetic_embedded_data():
