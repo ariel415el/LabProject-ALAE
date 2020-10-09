@@ -14,6 +14,11 @@ Implement ALAE with linear encoder and decoder and compare with PCA which is the
 3. Compare various auto-encoders on various datasets in terms of reconstruction loss
 4  Compare various auto-encoders by accuracy of clasifiers trained on their encodings 
     of classification datasets (e.g MNIST)
+   
+The main results of step 1:
+
+![alt text](assets/Mnist-trainig.png)
+
 ##### Relevant materials #####
 - PCA: two sided problem: http://alexhwilliams.info/itsneuronalblog/2016/03/27/pca/
 

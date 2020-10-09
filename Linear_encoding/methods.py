@@ -41,11 +41,11 @@ class LinearAutoEncoder(object):
         return np.dot(zero_mean_data, self.restoration_matrix)
 
     def get_reconstuction_loss(self, zero_mean_data):
-        return np.linalg.norm(zero_mean_data - self.decode(self.encode(zero_mean_data)), ord=2)
+        return np.linalg.norm(zero_mean_data - self.decode(self.encode(zero_mean_data)), ord=2) / zero_mean_data.shape[0]
 
     def get_orthonormality_loss(self, zero_mean_data):
         PM_PMT = np.dot(self.restoration_matrix, self.projection_matrix)
-        return np.linalg.norm(np.identity(self.laten_dim) - PM_PMT, ord=2)
+        return np.linalg.norm(np.identity(self.laten_dim) - PM_PMT, ord=2) / self.laten_dim
 
 
 class AnalyticalPCA(LinearAutoEncoder):
@@ -130,7 +130,7 @@ class NumericMinimizationPCA(LinearAutoEncoder):
 
 class VanilaAE(LinearAutoEncoder):
     def __init__(self, laten_dim, training_dir, optimization_steps=1000, lr=0.001, batch_size=64):
-        super(VanilaAE, self).__init__(laten_dim, f"VanilaAE_s[{optimization_steps}]_lr[{lr}_b[{batch_size}]", training_dir)
+        super(VanilaAE, self).__init__(laten_dim, f"VanilaAE_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]", training_dir)
         self.optimization_steps = optimization_steps
         self.lr = lr
         self.batch_size = batch_size

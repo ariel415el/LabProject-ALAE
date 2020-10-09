@@ -24,7 +24,7 @@ def main():
 
     latent_dim = 10
     train_epochs=10
-    lr=0.01
+    lr=0.001
 
     output_dir = os.path.join("Linear_encoding/outputs", dataset_name)
     os.makedirs(output_dir, exist_ok=True)
@@ -52,11 +52,11 @@ def main():
                ALAE(latent_dim, output_dir, optimization_steps=1000)]
 
     for method in methods:
-        logger.log(f"method: {method}")
+        logger.log(f"{method}:")
         # Learn encodings
         method.learn_encoder_decoder(train_data)
-        logger.log(f"\tReconstrucion loss train/test {method.get_reconstuction_loss(train_data):.2f}/{method.get_reconstuction_loss(test_data):.2f}")
-        logger.log(f"\tOrthonormality loss train/test {method.get_orthonormality_loss(train_data):.2f}/{method.get_orthonormality_loss(test_data):.2f}")
+        logger.log(f"\tReconstrucion loss train/test {method.get_reconstuction_loss(train_data):.4f}/{method.get_reconstuction_loss(test_data):.4f}")
+        logger.log(f"\tOrthonormality loss train/test {method.get_orthonormality_loss(train_data):.4f}/{method.get_orthonormality_loss(test_data):.4f}")
 
         projected_train_data = method.encode(train_data)
         projected_test_data = method.encode(test_data)
