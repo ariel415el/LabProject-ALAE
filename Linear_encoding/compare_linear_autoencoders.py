@@ -34,8 +34,7 @@ def main():
     logger = my_logger(os.path.join(output_dir, "log.txt"))
     logger.log(f"Data dimension: {data_dim}")
     logger.log(f"Target dimension: {latent_dim}")
-    logger.log(f"Num samples: train/test {train_data.shape[0]}/ {test_data.shape[0]}")
-
+    logger.log(f"Num samples: train/test {train_data.shape[0]} / {test_data.shape[0]}")
 
     # Base line: train on original dataset
     train_accuracy, test_accuracy = train_mlp_classifier((train_data, train_labels), (test_data, test_labels),

@@ -17,20 +17,14 @@ def train_svm(train_data_and_labels, test_data_and_labels):
     return np.mean(train_labels == clf.predict(train_data))*100, np.mean(test_labels == clf.predict(test_data)) * 100
 
 
-def get_distances_matrix(data_mat):
-    distances = np.zeros((data_mat.shape[0], data_mat.shape[0]))
-    for j in range(data_mat.shape[0]):
-        distances[:,j] = np.sum(np.abs(data_mat - data_mat[j]), axis=1)
-    return distances
-
-
 def evaluate_nearest_neighbor(data, labels):
-    distances_matrix = get_distances_matrix(data)
-    np.fill_diagonal(distances_matrix, np.inf) # avoid choosing self
-    nn1_indices = np.argmin(distances_matrix, axis=1)
-    predictions = labels[nn1_indices]
+    predictions = np.ones(data.shape[0]) * -1
+    for j in range(data.shape[0]):
+        # distances = np.sqrt(np.sum((data - data[j])**2, axis=1)) # l2 distance
+        distances = np.sqrt(np.sum((data - data[j])**2, axis=1)) # l2 distance
+        distances[j] = np.inf
+        predictions[j] = labels[np.argmin(distances)]
     return 100 * np.mean(labels == predictions)
-
 
 
 class EncodingsDataset(Dataset):
