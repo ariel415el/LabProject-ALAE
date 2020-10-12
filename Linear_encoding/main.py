@@ -6,7 +6,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 from Linear_encoding.datasets import *
 from Linear_encoding.methods import *
-from method_evaluation.train_classifier import train_on_data
+from method_evaluation.classifiers import train_mlp_classifier, train_svm, evaluate_nearest_neighbor
 
 
 class my_logger(object):
@@ -19,12 +19,13 @@ class my_logger(object):
 
 
 def main():
+    # Get data
     train_data, train_labels, test_data, test_labels, dataset_name = get_sklearn_digits()
     # train_data, train_labels, test_data, test_labels, dataset_name = get_mnist(data_dir='Linear_encoding/data')
 
     latent_dim = 10
-    train_epochs=10
-    lr=0.001
+    train_epochs=15
+    lr=0.002
 
     output_dir = os.path.join("Linear_encoding/outputs", dataset_name)
     os.makedirs(output_dir, exist_ok=True)
@@ -36,12 +37,11 @@ def main():
 
 
     # Base line: train on original dataset
-    train_accuracy, test_accuracy = train_on_data((train_data, train_labels), (test_data, test_labels),
-                                                 epochs=train_epochs, lr=lr,
-                                                 plot_path=os.path.join(os.path.join(output_dir, f"{dataset_name}_train_original_data.png")))
+    train_accuracy, test_accuracy = train_mlp_classifier((train_data, train_labels), (test_data, test_labels),
+                                                         epochs=train_epochs, lr=lr,
+                                                         plot_path=os.path.join(os.path.join(output_dir, f"{dataset_name}_train_original_data.png")))
     logger.log(f"\n{dataset_name} original data accuracy train/test {train_accuracy:.2f}/{test_accuracy:.2f}")
 
-    # Learn encoding on train data train on it and test on test encodings
     # normalizer data
     train_data = train_data - train_data.mean(0)
     test_data = test_data - test_data.mean(0)
@@ -53,18 +53,28 @@ def main():
 
     for method in methods:
         logger.log(f"{method}:")
-        # Learn encodings
+        # Learn encoding on train data train on it and test on test encodings
         method.learn_encoder_decoder(train_data)
         logger.log(f"\tReconstrucion loss train/test {method.get_reconstuction_loss(train_data):.4f}/{method.get_reconstuction_loss(test_data):.4f}")
         logger.log(f"\tOrthonormality loss train/test {method.get_orthonormality_loss(train_data):.4f}/{method.get_orthonormality_loss(test_data):.4f}")
 
+        # Evaluate encoodings
         projected_train_data = method.encode(train_data)
         projected_test_data = method.encode(test_data)
 
-        train_accuracy, test_accuracy = train_on_data((projected_train_data, train_labels), (projected_test_data, test_labels),
-                                                      epochs=train_epochs, lr=lr,
-                                                      plot_path=os.path.join(os.path.join(output_dir, f"{dataset_name}_train_{method}.png")))
-        logger.log(f"\t{dataset_name} accuracy train/test {train_accuracy:.2f}/{test_accuracy:.2f}")
+        # MLP classifier
+        train_accuracy, test_accuracy = train_mlp_classifier((projected_train_data, train_labels), (projected_test_data, test_labels),
+                                                             epochs=train_epochs, lr=lr,
+                                                             plot_path=os.path.join(os.path.join(output_dir, f"{dataset_name}_train_{method}.png")))
+        logger.log(f"\t{dataset_name} classifier accuracy train/test {train_accuracy:.2f}/{test_accuracy:.2f}")
+
+        # SVM classifier
+        train_accuracy, test_accuracy = train_svm((projected_train_data, train_labels), (projected_test_data, test_labels))
+        logger.log(f"\t{dataset_name} SVM accuracy train/test {train_accuracy:.2f}/{test_accuracy:.2f}")
+
+        # 1NN classifier
+        logger.log(f"\t{dataset_name} 1NN accuracy train/test {evaluate_nearest_neighbor(projected_train_data, train_labels):2f}/"
+                   f"{evaluate_nearest_neighbor(projected_test_data, test_labels):.2f}")
 
 
 if __name__ == '__main__':

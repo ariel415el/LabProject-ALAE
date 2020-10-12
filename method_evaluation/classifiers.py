@@ -4,7 +4,33 @@ import torch.nn.functional as F
 from torch.utils.data.dataset import Dataset
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import svm
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+def train_svm(train_data_and_labels, test_data_and_labels):
+    train_data, train_labels = train_data_and_labels
+    test_data, test_labels = test_data_and_labels
+    clf = svm.SVC(C=5, kernel="linear")
+    clf.fit(train_data, train_labels)
+    return np.mean(train_labels == clf.predict(train_data))*100, np.mean(test_labels == clf.predict(test_data)) * 100
+
+
+def get_distances_matrix(data_mat):
+    distances = np.zeros((data_mat.shape[0], data_mat.shape[0]))
+    for j in range(data_mat.shape[0]):
+        distances[:,j] = np.sum(np.abs(data_mat - data_mat[j]), axis=1)
+    return distances
+
+
+def evaluate_nearest_neighbor(data, labels):
+    distances_matrix = get_distances_matrix(data)
+    np.fill_diagonal(distances_matrix, np.inf) # avoid choosing self
+    nn1_indices = np.argmin(distances_matrix, axis=1)
+    predictions = labels[nn1_indices]
+    return 100 * np.mean(labels == predictions)
+
 
 
 class EncodingsDataset(Dataset):
@@ -79,8 +105,8 @@ def test(model, test_loader):
     return accuracy
 
 
-def train_on_data(train_data_and_labels, test_data_and_labels,
-                  batch_size=64, epochs=5, lr=0.01, lr_decay=0.9, log_interval=None, plot_path=None):
+def train_mlp_classifier(train_data_and_labels, test_data_and_labels,
+                         batch_size=64, epochs=5, lr=0.01, lr_decay=0.9, log_interval=None, plot_path=None):
     kwargs = {'batch_size': batch_size}
     if device != "cpu":
         kwargs.update({'num_workers': 1,
@@ -117,21 +143,3 @@ def train_on_data(train_data_and_labels, test_data_and_labels,
         plt.clf()
 
     return train_accuracies[-1], test_accuracies[-1]
-
-
-
-if __name__ == '__main__':
-    import sys
-    import os
-    import inspect
-
-    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    parentdir = os.path.dirname(currentdir)
-    sys.path.insert(0, parentdir)
-    from Linear_encoding.datasets import get_mnist
-    train_data, train_labels, test_data, test_labels, dataset_name = get_mnist(data_dir='Linear_encoding/data')
-
-    train_accuracies, test_accuracies = train_on_data((train_data, train_labels), (test_data, test_labels), epochs=5, lr=0.001, lr_decay=0.7)
-    plt.plot(np.arange(len(train_accuracies)), train_accuracies,label='train-acc', c='r')
-    plt.plot(np.arange(len(test_accuracies)), test_accuracies, label='test-acc', c='b')
-    plt.show()
