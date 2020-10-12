@@ -4,8 +4,8 @@ import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
-from Linear_encoding.datasets import *
-from Linear_encoding.methods import *
+from datasets import *
+from Linear_encoding.linear_autoencoders import *
 COLORS = ['r','g','b','c','k']
 
 

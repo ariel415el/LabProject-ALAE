@@ -26,5 +26,5 @@ The main results of step 1:
 - Variational AutoEncoders: https://arxiv.org/abs/1312.6114
 - Adverserial AutoEncoders: https://arxiv.org/abs/1511.05644
 - AutoEncoders with learned metric: https://arxiv.org/abs/1512.09300
-- Adverserial Feature Learning: https://arxiv.org/abs/1605.09782
+- Adverserial Feature Learning (BiGAN): https://arxiv.org/abs/1605.09782
 - StyleGAN: https://arxiv.org/abs/1812.04948
