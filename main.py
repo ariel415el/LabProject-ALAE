@@ -40,7 +40,8 @@ def main():
     train_data = train_data - train_data.mean(0)
     test_data = test_data - test_data.mean(0)
 
-    methods = [VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000),
+    methods = [VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, metric='l1'),
+               VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, metric='l2'),
                ALAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000)]
 
     for method in methods:

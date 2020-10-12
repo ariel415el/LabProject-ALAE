@@ -48,7 +48,8 @@ def main():
 
     methods = [AnalyticalPCA(data_dim, latent_dim),
                # NumericMinimizationPCA(latent_dim, output_dir, optimization_steps=1000, regularization_factor=10),
-               LinearVanilaAE(data_dim, latent_dim, output_dir, optimization_steps=1000),
+               LinearVanilaAE(data_dim, latent_dim, output_dir, optimization_steps=1000, metric='l1'),
+               LinearVanilaAE(data_dim, latent_dim, output_dir, optimization_steps=1000, metric='l2'),
                LinearALAE(data_dim, latent_dim, output_dir, optimization_steps=1000)]
 
     for method in methods:

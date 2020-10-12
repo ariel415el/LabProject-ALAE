@@ -108,10 +108,13 @@ class NumericMinimizationPCA(LinearAutoEncoder):
 
 
 class LinearVanilaAE(LinearAutoEncoder):
-    def __init__(self, data_dim, laten_dim, training_dir, optimization_steps=1000, lr=0.001, batch_size=64):
+    def __init__(self, data_dim, laten_dim, training_dir, optimization_steps=1000, lr=0.001, batch_size=64, metric='l2'):
         super(LinearVanilaAE, self).__init__(data_dim, laten_dim, None)
         self.VanillaVAE = VanilaAE(data_dim, laten_dim, training_dir, optimization_steps=optimization_steps,
-                                   lr=lr, batch_size=batch_size, mode="Linear")
+                                   lr=lr, batch_size=batch_size, mode="Linear", metric=metric)
+
+        self.name = "Linear" + self.VanillaVAE.name
+
 
     def learn_encoder_decoder(self, data):
         self.VanillaVAE.learn_encoder_decoder(data)
@@ -125,6 +128,9 @@ class LinearALAE(LinearAutoEncoder):
         super(LinearALAE, self).__init__(data_dim, laten_dim, None)
         self.ALAE = ALAE(data_dim, laten_dim,  training_dir, z_dim=z_dim, mode="Linear",
                          optimization_steps=optimization_steps, lr=lr, batch_size=batch_size)
+
+        self.name = "Linear" + self.ALAE.name
+
 
     def learn_encoder_decoder(self, data):
         self.ALAE.learn_encoder_decoder(data)
