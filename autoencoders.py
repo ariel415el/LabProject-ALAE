@@ -172,6 +172,11 @@ class ALAE(EncoderDecoder):
 
 
 class LatentRegressor(EncoderDecoder):
+    """
+    This architecture is suggested in the BiGan paper "Adverserial Feature Learning": https://arxiv.org/abs/1605.09782
+    It is basicly a GAN architecture where an encoder is trained (in parrallel to the gan or afterwards) to minimize
+    te reconstruction loss in the latent space
+    """
     def __init__(self, data_dim, latent_dim, training_dir, optimization_steps=1000, lr=0.002, batch_size=64,
                  mode="Linear", regressor_training='joint'):
         super(LatentRegressor, self).__init__(data_dim, latent_dim, training_dir)
@@ -184,23 +189,22 @@ class LatentRegressor(EncoderDecoder):
             self.name = "J" + self.name
 
         if mode == "Linear":
-            self.G = torch.nn.Linear(latent_dim, data_dim)
-            self.E = torch.nn.Linear(data_dim, latent_dim)
-            self.D = torch.nn.Linear(data_dim, 1)
+            self.G = nn.Linear(latent_dim, data_dim)
+            self.E = nn.Linear(data_dim, latent_dim)
+            # self.D = nn.Linear(data_dim, 1)
+            self.D = nn.Sequential(nn.Linear(data_dim, 1), nn.Sigmoid())
+
         else:
             raise Exception("Mode no supported")
 
-        self.optimizer_E = torch.optim.Adam(self.E.parameters(), lr=self.lr, betas=(0.5, 0.999))
-
-        self.BCE_loss = torch.nn.BCELoss()
-        self.sigmoid = torch.nn.Sigmoid()
-
+        self.BCE_loss = nn.BCELoss()
+        self.sigmoid = nn.Sigmoid()
 
     def learn_encoder_decoder(self, data):
         # Optimizers
         optimizer_G = torch.optim.Adam(self.G.parameters(), lr=self.lr, betas=(0.5, 0.999))
         optimizer_D = torch.optim.Adam(self.D.parameters(), lr=self.lr, betas=(0.5, 0.999))
-
+        optimizer_E = torch.optim.Adam(self.E.parameters(), lr=self.lr, betas=(0.5, 0.999))
 
         X = torch.tensor(data, requires_grad=False, dtype=torch.float32)
 
@@ -208,13 +212,13 @@ class LatentRegressor(EncoderDecoder):
 
         for s in tqdm(range(self.optimization_steps)):
             # Adversarial ground truths
-            ones = torch.ones((self.batch_size, 1), dtype=torch.long)
-            zeros = torch.zeros((self.batch_size, 1), dtype=torch.long)
+            ones = torch.ones((self.batch_size, 1), dtype=torch.float32, requires_grad=False)
+            zeros = torch.zeros((self.batch_size, 1), dtype=torch.float32, requires_grad=False)
             batch_real_data = X[torch.randint(data.shape[0], (self.batch_size,))]
 
             #  Train Generator #
             optimizer_G.zero_grad()
-            z = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.latent_dim)),dtype=torch.float32)
+            z = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.latent_dim)), dtype=torch.float32, requires_grad=False)
             generated_data = self.G(z)
             g_loss = self.BCE_loss(self.D(generated_data), ones)
             g_loss.backward()
@@ -233,22 +237,23 @@ class LatentRegressor(EncoderDecoder):
             losses[2] += [fake_loss.item()]
 
             if self.regressor_training == 'joint':
-                losses[3] +=[self.regress_encoder(z)]
+                losses[3] +=[self.regress_encoder(optimizer_E, z)]
 
         if self.regressor_training != 'joint':
             for s in range(self.optimization_steps):
-                z = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.latent_dim)), dtype=torch.float32)
-                losses[3] += [self.regress_encoder(z)]
+                z = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.latent_dim)), dtype=torch.float32, requires_grad=False)
+                losses[3] += [self.regress_encoder(optimizer_E, z)]
 
         # plot training
         if self.outputs_dir:
-            plot_training(losses, ["g-loss", "D-real", 'd-fake'], self.outputs_dir, self.name)
+            plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], self.outputs_dir, self.name)
 
-    def regress_encoder(self, latent_batch):
-        self.optimizer_E.zero_grad()
-        loss = self.BCE_loss(latent_batch, self.E(self.G(latent_batch).detach()))
+    def regress_encoder(self, optimizer, latent_batch):
+        optimizer.zero_grad()
+        # TODO : is this what they meant by sigmoid cross entropy loss in the BiGan paper
+        loss = self.BCE_loss(self.sigmoid(self.E(self.G(latent_batch).detach())), latent_batch)
         loss.backward()
-        self.optimizer_E.step()
+        optimizer.step()
 
         return loss
 

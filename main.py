@@ -1,7 +1,7 @@
 import os
 from method_evaluation.classifiers import train_mlp_classifier, train_svm, evaluate_nearest_neighbor
 from datasets import get_mnist, get_sklearn_digits
-from autoencoders import VanilaAE, ALAE
+from autoencoders import VanilaAE, ALAE, LatentRegressor
 
 
 class my_logger(object):
@@ -40,8 +40,11 @@ def main():
     train_data = train_data - train_data.mean(0)
     test_data = test_data - test_data.mean(0)
 
-    methods = [VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, metric='l1'),
+    methods = [
+               VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, metric='l1'),
                VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, metric='l2'),
+               LatentRegressor(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, regressor_training="separate"),
+               LatentRegressor(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, regressor_training="joint"),
                ALAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000)]
 
     for method in methods:

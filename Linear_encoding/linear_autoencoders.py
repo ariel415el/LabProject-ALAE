@@ -113,7 +113,7 @@ class LinearVanilaAE(LinearAutoEncoder):
         self.VanillaVAE = VanilaAE(data_dim, laten_dim, training_dir, optimization_steps=optimization_steps,
                                    lr=lr, batch_size=batch_size, mode="Linear", metric=metric)
 
-        self.name = "Linear" + self.VanillaVAE.name
+        self.name = "Linear-" + self.VanillaVAE.name
 
 
     def learn_encoder_decoder(self, data):
@@ -129,8 +129,7 @@ class LinearALAE(LinearAutoEncoder):
         self.ALAE = ALAE(data_dim, laten_dim,  training_dir, z_dim=z_dim, mode="Linear",
                          optimization_steps=optimization_steps, lr=lr, batch_size=batch_size)
 
-        self.name = "Linear" + self.ALAE.name
-
+        self.name = "Linear-" + self.ALAE.name
 
     def learn_encoder_decoder(self, data):
         self.ALAE.learn_encoder_decoder(data)
@@ -139,3 +138,17 @@ class LinearALAE(LinearAutoEncoder):
         self.restoration_matrix = self.ALAE.G.weight.t().detach().numpy()
 
 
+class LinearLatentRegressor(LinearAutoEncoder):
+    def __init__(self, data_dim, laten_dim,  training_dir, optimization_steps=1000, lr=0.002, batch_size=64, regressor_training='joint'):
+        super(LinearLatentRegressor, self).__init__(data_dim, laten_dim, None)
+        self.LatentRegressor = LatentRegressor(data_dim, laten_dim,  training_dir, mode="Linear",
+                                               optimization_steps=optimization_steps, lr=lr, batch_size=batch_size,
+                                               regressor_training=regressor_training)
+
+        self.name = "Linear-" + self.LatentRegressor.name
+
+    def learn_encoder_decoder(self, data):
+        self.LatentRegressor.learn_encoder_decoder(data)
+
+        self.projection_matrix = self.LatentRegressor.E.weight.t().detach().numpy()
+        self.restoration_matrix = self.LatentRegressor.G.weight.t().detach().numpy()

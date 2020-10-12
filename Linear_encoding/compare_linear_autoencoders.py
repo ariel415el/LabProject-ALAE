@@ -48,9 +48,13 @@ def main():
 
     methods = [AnalyticalPCA(data_dim, latent_dim),
                # NumericMinimizationPCA(latent_dim, output_dir, optimization_steps=1000, regularization_factor=10),
-               LinearVanilaAE(data_dim, latent_dim, output_dir, optimization_steps=1000, metric='l1'),
-               LinearVanilaAE(data_dim, latent_dim, output_dir, optimization_steps=1000, metric='l2'),
-               LinearALAE(data_dim, latent_dim, output_dir, optimization_steps=1000)]
+               LinearLatentRegressor(train_data.shape[1], latent_dim, output_dir, optimization_steps=10000,
+                               regressor_training="separate"),
+               LinearLatentRegressor(train_data.shape[1], latent_dim, output_dir, optimization_steps=10000,
+                               regressor_training="joint"),
+               LinearVanilaAE(data_dim, latent_dim, output_dir, optimization_steps=10000, metric='l1'),
+               LinearVanilaAE(data_dim, latent_dim, output_dir, optimization_steps=10000, metric='l2'),
+               LinearALAE(data_dim, latent_dim, output_dir, optimization_steps=10000)]
 
     for method in methods:
         logger.log(f"{method}:")
