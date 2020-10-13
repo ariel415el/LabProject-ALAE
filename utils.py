@@ -12,3 +12,13 @@ def plot_training(losses, names, plots_dir, plot_name):
         ax.plot(np.arange(len(loss_list)), loss_list)
     plt.savefig(os.path.join(plots_dir, plot_name + ".png"))
     plt.clf()
+
+
+class simple_logger(object):
+    def __init__(self, fname):
+        self.file = open(fname, "w")
+
+    def log(self, txt, end="\n", stdout=True):
+        self.file.write(txt + end)
+        if stdout:
+            print(txt, end=end)

@@ -52,7 +52,7 @@ def get_mnist(data_dir="data"):
     train_data = (train_data - mnist_mean) / mnist_std
     test_data = (test_data - mnist_mean) / mnist_std
 
-    return train_data, train_labels, test_data, test_labels, "MNIST"
+    return (train_data, train_labels, test_data, test_labels), "MNIST"
 
 
 def get_sklearn_digits(plot=False):
@@ -77,7 +77,7 @@ def get_sklearn_digits(plot=False):
     d = int(data.shape[0]*0.9)
     train_data, train_labels = data[:d], labels[:d]
     test_data, test_labels = data[d:], labels[d:]
-    return train_data, train_labels, test_data, test_labels, "sklearn_digits"
+    return (train_data, train_labels, test_data, test_labels), "sklearn_digits"
 
 
 def get_synthetic_embedded_data():

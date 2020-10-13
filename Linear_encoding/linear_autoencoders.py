@@ -3,8 +3,8 @@ from utils import plot_training
 
 
 class LinearAutoEncoder(EncoderDecoder):
-    def __init__(self, data_dim, laten_dim, outputs_dir):
-        super(LinearAutoEncoder, self).__init__(data_dim, laten_dim, outputs_dir)
+    def __init__(self, data_dim, laten_dim):
+        super(LinearAutoEncoder, self).__init__(data_dim, laten_dim)
         self.restoration_matrix = None
         self.projection_matrix = None
 
@@ -17,7 +17,7 @@ class LinearAutoEncoder(EncoderDecoder):
     def get_reconstuction_loss(self, zero_mean_data):
         return np.linalg.norm(zero_mean_data - self.decode(self.encode(zero_mean_data)), ord=2) / zero_mean_data.shape[0]
 
-    def get_orthonormality_loss(self, zero_mean_data):
+    def get_orthonormality_loss(self):
         PM_PMT = np.dot(self.restoration_matrix, self.projection_matrix)
         return np.linalg.norm(np.identity(self.latent_dim) - PM_PMT, ord=2) / self.latent_dim
 
@@ -27,7 +27,7 @@ class LinearAutoEncoder(EncoderDecoder):
 
 class AnalyticalPCA(LinearAutoEncoder):
     def __init__(self, data_dim, latent_dim):
-        super(AnalyticalPCA, self).__init__(data_dim, latent_dim, None)
+        super(AnalyticalPCA, self).__init__(data_dim, latent_dim)
         self.name = "AnalyticalPCA"
 
     def learn_encoder_decoder(self, data):
@@ -47,8 +47,8 @@ class AnalyticalPCA(LinearAutoEncoder):
 
 
 class NumericMinimizationPCA(LinearAutoEncoder):
-    def __init__(self, data_dim, laten_dim, training_dir, optimization_steps=1000, lr=0.001, regularization_factor=1):
-        super(NumericMinimizationPCA, self).__init__(data_dim, laten_dim, training_dir)
+    def __init__(self, data_dim, laten_dim, optimization_steps=1000, lr=0.001, regularization_factor=1):
+        super(NumericMinimizationPCA, self).__init__(data_dim, laten_dim)
         self.optimization_steps = optimization_steps
         self.regularization_factor = regularization_factor
         self.lr = lr
@@ -65,19 +65,19 @@ class NumericMinimizationPCA(LinearAutoEncoder):
         Assumes X is zero centered
         """
         X = torch.tensor(data, requires_grad=False)
-        C = torch.tensor(np.random.normal(0, 1, (data.shape[1], self.laten_dim)), requires_grad=True)
+        C = torch.tensor(np.random.normal(0, 1, (data.shape[1], self.latent_dim)), requires_grad=True)
         optimizer = torch.optim.Adam([C], lr=self.lr)
 
         losses = [[], []]
 
-        for s in tqdm(range(self.optimization_steps)):
+        for s in range(self.optimization_steps):
             projected_data = torch.matmul(X, C)
             reconstruct_data = torch.matmul(projected_data, C.t())
             reconstruction_loss = torch.nn.functional.mse_loss(X, reconstruct_data)
 
             # ensure C columns are orthonormal
             CT_C = torch.matmul(C.t(), C)
-            constraint_loss = torch.nn.functional.mse_loss(CT_C, torch.eye(self.laten_dim, dtype=C.dtype))
+            constraint_loss = torch.nn.functional.mse_loss(CT_C, torch.eye(self.latent_dim, dtype=C.dtype))
 
             loss = reconstruction_loss + self.regularization_factor * constraint_loss
 
@@ -89,14 +89,14 @@ class NumericMinimizationPCA(LinearAutoEncoder):
             losses[1] += [constraint_loss.item()]
 
         # plot training
-        if self.outputs_dir:
-            plot_training(losses, ["reconstruction_loss", "constrain_loss"], self.outputs_dir, self.name)
+        if self.training_dir:
+            plot_training(losses, ["reconstruction_loss", "constrain_loss"], self.training_dir, self.name)
 
         C = C.detach().numpy()
 
         # Sort PCs in descending order by eiegenvalues
         eiegenvalues = []
-        for i in range(self.laten_dim):
+        for i in range(self.latent_dim):
             data_projected_to_pc = np.dot(data, C[:, i])
             pc_variation = np.dot(data_projected_to_pc.transpose(), data_projected_to_pc)
             C_norm = np.dot(C[0].transpose(), C[0])
@@ -108,13 +108,15 @@ class NumericMinimizationPCA(LinearAutoEncoder):
 
 
 class LinearVanilaAE(LinearAutoEncoder):
-    def __init__(self, data_dim, laten_dim, training_dir, optimization_steps=1000, lr=0.001, batch_size=64, metric='l2'):
-        super(LinearVanilaAE, self).__init__(data_dim, laten_dim, None)
-        self.VanillaVAE = VanilaAE(data_dim, laten_dim, training_dir, optimization_steps=optimization_steps,
+    def __init__(self, data_dim, laten_dim, optimization_steps=1000, lr=0.001, batch_size=64, metric='l2'):
+        super(LinearVanilaAE, self).__init__(data_dim, laten_dim)
+        self.VanillaVAE = VanilaAE(data_dim, laten_dim, optimization_steps=optimization_steps,
                                    lr=lr, batch_size=batch_size, mode="Linear", metric=metric)
 
         self.name = "Linear-" + self.VanillaVAE.name
 
+    def set_training_dir(self, training_dir):
+        self.VanillaVAE.training_dir = training_dir
 
     def learn_encoder_decoder(self, data):
         self.VanillaVAE.learn_encoder_decoder(data)
@@ -124,12 +126,15 @@ class LinearVanilaAE(LinearAutoEncoder):
 
 
 class LinearALAE(LinearAutoEncoder):
-    def __init__(self, data_dim, laten_dim,  training_dir, z_dim=32, optimization_steps=1000, lr=0.002, batch_size=64):
-        super(LinearALAE, self).__init__(data_dim, laten_dim, None)
-        self.ALAE = ALAE(data_dim, laten_dim,  training_dir, z_dim=z_dim, mode="Linear",
+    def __init__(self, data_dim, laten_dim, z_dim=32, optimization_steps=1000, lr=0.002, batch_size=64):
+        super(LinearALAE, self).__init__(data_dim, laten_dim)
+        self.ALAE = ALAE(data_dim, laten_dim, z_dim=z_dim, mode="Linear",
                          optimization_steps=optimization_steps, lr=lr, batch_size=batch_size)
 
         self.name = "Linear-" + self.ALAE.name
+
+    def set_training_dir(self, training_dir):
+        self.ALAE.training_dir = training_dir
 
     def learn_encoder_decoder(self, data):
         self.ALAE.learn_encoder_decoder(data)
@@ -139,13 +144,16 @@ class LinearALAE(LinearAutoEncoder):
 
 
 class LinearLatentRegressor(LinearAutoEncoder):
-    def __init__(self, data_dim, laten_dim,  training_dir, optimization_steps=1000, lr=0.002, batch_size=64, regressor_training='joint'):
-        super(LinearLatentRegressor, self).__init__(data_dim, laten_dim, None)
-        self.LatentRegressor = LatentRegressor(data_dim, laten_dim,  training_dir, mode="Linear",
+    def __init__(self, data_dim, laten_dim, optimization_steps=1000, lr=0.002, batch_size=64, regressor_training='joint'):
+        super(LinearLatentRegressor, self).__init__(data_dim, laten_dim)
+        self.LatentRegressor = LatentRegressor(data_dim, laten_dim, mode="Linear",
                                                optimization_steps=optimization_steps, lr=lr, batch_size=batch_size,
                                                regressor_training=regressor_training)
 
         self.name = "Linear-" + self.LatentRegressor.name
+
+    def set_training_dir(self, training_dir):
+        self.LatentRegressor.training_dir = training_dir
 
     def learn_encoder_decoder(self, data):
         self.LatentRegressor.learn_encoder_decoder(data)

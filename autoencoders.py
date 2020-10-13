@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 from utils import plot_training
-from tqdm import tqdm
 import torch.nn.functional as F
 
 
@@ -25,10 +24,9 @@ class BiGanMLP(nn.Module):
         return x
 
 
-
 class EncoderDecoder(object):
-    def __init__(self, data_dim, latent_dim, outputs_dir=None):
-        self.outputs_dir = outputs_dir
+    def __init__(self, data_dim, latent_dim):
+        self.training_dir = None
         self.name = "AbstractEncoderDecoder"
         self.data_dimdata_dim= data_dim
         self.latent_dim = latent_dim
@@ -52,15 +50,17 @@ class EncoderDecoder(object):
     def get_reconstuction_loss(self, zero_mean_data):
         return np.linalg.norm(zero_mean_data - self.decode(self.encode(zero_mean_data)), ord=2) / zero_mean_data.shape[0]
 
+    def set_training_dir(self, training_dir):
+        self.training_dir = training_dir
 
 class VanilaAE(EncoderDecoder):
     """
     SGD minimzation of reconstruction loss ||X - XED|| where E and D are any
     d x laten_dim and laten_dim x d matrices.
     """
-    def __init__(self, data_dim, latent_dim, training_dir, optimization_steps=1000, lr=0.001, batch_size=64,
+    def __init__(self, data_dim, latent_dim, optimization_steps=1000, lr=0.001, batch_size=64,
                  mode='Linear', metric='l2'):
-        super(VanilaAE, self).__init__(data_dim, latent_dim, training_dir)
+        super(VanilaAE, self).__init__(data_dim, latent_dim)
         self.optimization_steps = optimization_steps
         self.lr = lr
         self.batch_size = batch_size
@@ -79,7 +79,7 @@ class VanilaAE(EncoderDecoder):
 
         losses = [[]]
 
-        for s in tqdm(range(self.optimization_steps)):
+        for s in range(self.optimization_steps):
             batch_X = X[torch.randint(X.shape[0], (self.batch_size,), dtype=torch.long)]
             reconstruct_data = self.D(self.E(batch_X))
 
@@ -90,8 +90,8 @@ class VanilaAE(EncoderDecoder):
 
             losses[0] += [loss.item()]
 
-        if self.outputs_dir:
-            plot_training(losses, ["reconstruction_loss"], self.outputs_dir, self.name)
+        if self.training_dir:
+            plot_training(losses, ["reconstruction_loss"], self.training_dir, self.name)
 
     def encode(self, zero_mean_data):
         with torch.no_grad():
@@ -103,8 +103,8 @@ class VanilaAE(EncoderDecoder):
 
 
 class ALAE(EncoderDecoder):
-    def __init__(self, data_dim, latent_dim, training_dir, z_dim=32, optimization_steps=1000, lr=0.002, batch_size=64, mode="Linear"):
-        super(ALAE, self).__init__(data_dim, latent_dim, training_dir)
+    def __init__(self, data_dim, latent_dim, z_dim=32, optimization_steps=1000, lr=0.002, batch_size=64, mode="Linear"):
+        super(ALAE, self).__init__(data_dim, latent_dim)
         self.optimization_steps = optimization_steps
         self.lr = lr
         self.z_dim = z_dim
@@ -130,7 +130,7 @@ class ALAE(EncoderDecoder):
 
         losses = [[], [], []]
 
-        for s in tqdm(range(self.optimization_steps)):
+        for s in range(self.optimization_steps):
             # Step I. Update E, and D
             ED_optimizer.zero_grad()
             batch_real_data = X[torch.randint(data.shape[0], (self.batch_size,))]
@@ -159,8 +159,8 @@ class ALAE(EncoderDecoder):
             losses[2] += [L_err_EG.item()]
 
         # plot training
-        if self.outputs_dir:
-            plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], self.outputs_dir, self.name)
+        if self.training_dir:
+            plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], self.training_dir, self.name)
 
     def encode(self, zero_mean_data):
         with torch.no_grad():
@@ -177,9 +177,9 @@ class LatentRegressor(EncoderDecoder):
     It is basicly a GAN architecture where an encoder is trained (in parrallel to the gan or afterwards) to minimize
     te reconstruction loss in the latent space
     """
-    def __init__(self, data_dim, latent_dim, training_dir, optimization_steps=1000, lr=0.002, batch_size=64,
+    def __init__(self, data_dim, latent_dim, optimization_steps=1000, lr=0.002, batch_size=64,
                  mode="Linear", regressor_training='joint'):
-        super(LatentRegressor, self).__init__(data_dim, latent_dim, training_dir)
+        super(LatentRegressor, self).__init__(data_dim, latent_dim)
         self.optimization_steps = optimization_steps
         self.lr = lr
         self.batch_size = batch_size
@@ -210,7 +210,7 @@ class LatentRegressor(EncoderDecoder):
 
         losses = [[], [], [], []]
 
-        for s in tqdm(range(self.optimization_steps)):
+        for s in range(self.optimization_steps):
             # Adversarial ground truths
             ones = torch.ones((self.batch_size, 1), dtype=torch.float32, requires_grad=False)
             zeros = torch.zeros((self.batch_size, 1), dtype=torch.float32, requires_grad=False)
@@ -245,8 +245,8 @@ class LatentRegressor(EncoderDecoder):
                 losses[3] += [self.regress_encoder(optimizer_E, z)]
 
         # plot training
-        if self.outputs_dir:
-            plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], self.outputs_dir, self.name)
+        if self.training_dir:
+            plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], self.training_dir, self.name)
 
     def regress_encoder(self, optimizer, latent_batch):
         optimizer.zero_grad()

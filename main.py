@@ -1,77 +1,101 @@
 import os
-from method_evaluation.classifiers import train_mlp_classifier, train_svm, evaluate_nearest_neighbor
 from datasets import get_mnist, get_sklearn_digits
 from autoencoders import VanilaAE, ALAE, LatentRegressor
+from utils import simple_logger
+import argparse
+from Linear_encoding.linear_autoencoders import LinearVanilaAE ,LinearALAE, LinearLatentRegressor, AnalyticalPCA
+from method_evaluation.evaluators import *
 
 
-class my_logger(object):
-    def __init__(self, fname):
-        self.file = open(fname, "w")
-
-    def log(self, txt):
-        self.file.write(txt + "\n")
-        print(txt)
+def get_dataset(dataset_name):
+    if dataset_name.lower() == 'digits':
+        return get_sklearn_digits()
+    elif dataset_name.lower() == "mnist":
+        return get_mnist(data_dir='data')
 
 
-def main():
+def get_autoencoders(data_dim, latent_dim, linear_autoencoders):
+    if linear_autoencoders:
+        autoencoders = [
+            AnalyticalPCA(data_dim, latent_dim),
+            LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l1'),
+            LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l2'),
+            LinearLatentRegressor(data_dim, latent_dim, optimization_steps=1000, regressor_training="separate"),
+            LinearLatentRegressor(data_dim, latent_dim, optimization_steps=1000, regressor_training="joint"),
+            LinearALAE(data_dim, latent_dim, optimization_steps=1000)
+        ]
+    else:
+        raise NotImplementedError
+
+    return autoencoders
+
+
+def get_evaluation_methods(linear_autoencoders, logger=None):
+    evaluaion_methods = [
+        ReconstructionLossEvaluator(),
+        FirstNearestNeighbor(),
+        SVMClassification(SVC_C=5),
+        MLP_classification(epochs=20, batch_size=128, lr=0.002, lr_decay=0.9, log_interval=None),
+    ]
+
+    if linear_autoencoders:
+        evaluaion_methods += [OrthonormalityEvaluator()]
+
+    if logger:
+        logger.log("," + ",".join([m.name for m in evaluaion_methods]))
+
+    return evaluaion_methods
+
+
+def main(args):
     # Get data
-    train_data, train_labels, test_data, test_labels, dataset_name = get_sklearn_digits()
-    # train_data, train_labels, test_data, test_labels, dataset_name = get_mnist(data_dir='data')
+    data, dataset_name = get_dataset(args.dataset)
 
-    latent_dim = 10
-    train_epochs=10
-    lr=0.002
+    autoencoders = get_autoencoders(data[0].shape[1], args.latent_dim, args.linear)
 
     output_dir = os.path.join("outputs", dataset_name)
     os.makedirs(output_dir, exist_ok=True)
 
-    logger = my_logger(os.path.join(output_dir, "log.txt"))
-    logger.log(f"Data dimension: {train_data.shape[1]}")
-    logger.log(f"Target dimension: {latent_dim}")
-    logger.log(f"Num samples: train/test {train_data.shape[0]}/ {test_data.shape[0]}")
+    # set logger
+    logger = simple_logger(os.path.join(output_dir, "results.csv"))
 
-    # Base line: train on original dataset
-    train_accuracy, test_accuracy = train_mlp_classifier((train_data, train_labels), (test_data, test_labels),
-                                                         epochs=train_epochs, lr=lr,
-                                                         plot_path=os.path.join(os.path.join(output_dir, f"{dataset_name}_train_original_data.png")))
-    logger.log(f"\n{dataset_name} original data accuracy train/test {train_accuracy:.2f}/{test_accuracy:.2f}")
+    evaluation_methods = get_evaluation_methods(args.linear, logger)
+
+    run_analysis(autoencoders, data, evaluation_methods, output_dir, logger)
+
+
+def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
+    train_data, train_labels, test_data, test_labels = data
 
     # normalizer data
     train_data = train_data - train_data.mean(0)
     test_data = test_data - test_data.mean(0)
 
-    methods = [
-               VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, metric='l1'),
-               VanilaAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, metric='l2'),
-               LatentRegressor(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, regressor_training="separate"),
-               LatentRegressor(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000, regressor_training="joint"),
-               ALAE(train_data.shape[1], latent_dim, output_dir, optimization_steps=1000)]
-
-    for method in methods:
-        logger.log(f"{method}:")
+    for ae in autoencoders:
+        logger.log(f"{ae}", end="")
         # Learn encoding on train data train on it and test on test encodings
-        method.learn_encoder_decoder(train_data)
-        logger.log(f"\tReconstrucion loss train/test {method.get_reconstuction_loss(train_data):.4f}/{method.get_reconstuction_loss(test_data):.4f}")
+        ae.set_training_dir(outputs_dir)
+        ae.learn_encoder_decoder(train_data)
 
-        # Evaluate encoodings
-        projected_train_data = method.encode(train_data)
-        projected_test_data = method.encode(test_data)
+        projected_train_data = ae.encode(train_data)
+        projected_test_data = ae.encode(test_data)
+        projected_data = (projected_train_data, projected_test_data)
 
-        # MLP classifier
-        train_accuracy, test_accuracy = train_mlp_classifier((projected_train_data, train_labels), (projected_test_data, test_labels),
-                                                             epochs=train_epochs, lr=lr,
-                                                             plot_path=os.path.join(os.path.join(output_dir, f"{dataset_name}_train_{method}.png")))
-        logger.log(f"\t{dataset_name} classifier accuracy train/test {train_accuracy:.2f}/{test_accuracy:.2f}")
-
-        # SVM classifier
-        train_accuracy, test_accuracy = train_svm((projected_train_data, train_labels), (projected_test_data, test_labels))
-        logger.log(f"\t{dataset_name} SVM accuracy train/test {train_accuracy:.2f}/{test_accuracy:.2f}")
-
-        # 1NN classifier
-        logger.log(f"\t{dataset_name} 1NN accuracy train/test {evaluate_nearest_neighbor(projected_train_data, train_labels):2f}/"
-                   f"{evaluate_nearest_neighbor(projected_test_data, test_labels):.2f}")
-
+        for evaluator in evaluation_methods:
+            result_str = evaluator.evaluate(ae, data, projected_data,
+                                            plot_path=os.path.join(outputs_dir, f"{evaluator}_{ae}.png"))
+            logger.log(f",{result_str}", end="")
+        logger.log("")
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", type=str, default='digits')
+    parser.add_argument("--linear", action='store_true')
+    parser.add_argument("--latent_dim", type=int, default=10)
+
+    args = parser.parse_args()
+
+    main(args)
+
+
