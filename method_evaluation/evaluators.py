@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data.dataset import Dataset
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn import svm
+from utils import plot_training_accuracies
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -18,6 +18,7 @@ class Evaluateor:
 
     def __str__(self):
         return self.name
+
 
 class ReconstructionLossEvaluator(Evaluateor):
     def __init__(self):
@@ -192,11 +193,7 @@ class MLP_classification(Evaluateor):
         # torch.save(model.state_dict(), "mnist_cnn.pt")
 
         if plot_path is not None:
-            plt.plot(np.arange(len(train_accuracies)), train_accuracies,label='train-acc', c='r')
-            plt.plot(np.arange(len(test_accuracies)), test_accuracies, label='test-acc', c='b')
-            plt.legend()
-            plt.savefig(plot_path)
-            plt.clf()
+            plot_training_accuracies(train_accuracies, test_accuracies, plot_path)
 
         return f"{train_accuracies[-1]:.2f}/{test_accuracies[-1]:.2f}"
 

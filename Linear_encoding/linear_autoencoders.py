@@ -21,7 +21,7 @@ class LinearAutoEncoder(EncoderDecoder):
         PM_PMT = np.dot(self.restoration_matrix, self.projection_matrix)
         return np.linalg.norm(np.identity(self.latent_dim) - PM_PMT, ord=2) / self.latent_dim
 
-    def learn_encoder_decoder(self, data):
+    def learn_encoder_decoder(self, data, plot_path=None):
         raise NotImplementedError
 
 
@@ -30,7 +30,7 @@ class AnalyticalPCA(LinearAutoEncoder):
         super(AnalyticalPCA, self).__init__(data_dim, latent_dim)
         self.name = "AnalyticalPCA"
 
-    def learn_encoder_decoder(self, data):
+    def learn_encoder_decoder(self, data, plot_path=None):
         """
         Perform PCA by triming the result orthonormal transformation of SVD
         Assumes X is zero centered
@@ -54,7 +54,7 @@ class NumericMinimizationPCA(LinearAutoEncoder):
         self.lr = lr
         self.name = f"NumericMinimizationPCA_s[{optimization_steps}]_lr[{lr}]_r[{regularization_factor}]"
 
-    def learn_encoder_decoder(self, data):
+    def learn_encoder_decoder(self, data, plot_path=None):
         """
         Perform PCA by a straightforward minimization of ||X - XCC^T|| constraint to C's columns being orthonormal vectors
         i.e C^TC = I.
@@ -89,8 +89,8 @@ class NumericMinimizationPCA(LinearAutoEncoder):
             losses[1] += [constraint_loss.item()]
 
         # plot training
-        if self.training_dir:
-            plot_training(losses, ["reconstruction_loss", "constrain_loss"], self.training_dir, self.name)
+        if plot_path:
+            plot_training(losses, ["reconstruction_loss", "constrain_loss"], plot_path)
 
         C = C.detach().numpy()
 
@@ -115,11 +115,8 @@ class LinearVanilaAE(LinearAutoEncoder):
 
         self.name = "Linear-" + self.VanillaVAE.name
 
-    def set_training_dir(self, training_dir):
-        self.VanillaVAE.training_dir = training_dir
-
-    def learn_encoder_decoder(self, data):
-        self.VanillaVAE.learn_encoder_decoder(data)
+    def learn_encoder_decoder(self, data, plot_path=None):
+        self.VanillaVAE.learn_encoder_decoder(data, plot_path)
 
         self.projection_matrix = self.VanillaVAE.E.weight.t().detach().numpy()
         self.restoration_matrix = self.VanillaVAE.D.weight.t().detach().numpy()
@@ -133,11 +130,8 @@ class LinearALAE(LinearAutoEncoder):
 
         self.name = "Linear-" + self.ALAE.name
 
-    def set_training_dir(self, training_dir):
-        self.ALAE.training_dir = training_dir
-
-    def learn_encoder_decoder(self, data):
-        self.ALAE.learn_encoder_decoder(data)
+    def learn_encoder_decoder(self, data, plot_path=None):
+        self.ALAE.learn_encoder_decoder(data, plot_path)
 
         self.projection_matrix = self.ALAE.E.weight.t().detach().numpy()
         self.restoration_matrix = self.ALAE.G.weight.t().detach().numpy()
@@ -152,11 +146,8 @@ class LinearLatentRegressor(LinearAutoEncoder):
 
         self.name = "Linear-" + self.LatentRegressor.name
 
-    def set_training_dir(self, training_dir):
-        self.LatentRegressor.training_dir = training_dir
-
-    def learn_encoder_decoder(self, data):
-        self.LatentRegressor.learn_encoder_decoder(data)
+    def learn_encoder_decoder(self, data, plot_path=None):
+        self.LatentRegressor.learn_encoder_decoder(data, plot_path)
 
         self.projection_matrix = self.LatentRegressor.E.weight.t().detach().numpy()
         self.restoration_matrix = self.LatentRegressor.G.weight.t().detach().numpy()

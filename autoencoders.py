@@ -26,7 +26,6 @@ class BiGanMLP(nn.Module):
 
 class EncoderDecoder(object):
     def __init__(self, data_dim, latent_dim):
-        self.training_dir = None
         self.name = "AbstractEncoderDecoder"
         self.data_dimdata_dim= data_dim
         self.latent_dim = latent_dim
@@ -34,7 +33,7 @@ class EncoderDecoder(object):
     def __str__(self):
         return self.name
 
-    def learn_encoder_decoder(self, data):
+    def learn_encoder_decoder(self, data, plot_path=None):
         """
         Learns the encoder and decoder transformations from data
         :param laten_dim: size of the latent space of the desired encodings
@@ -50,8 +49,6 @@ class EncoderDecoder(object):
     def get_reconstuction_loss(self, zero_mean_data):
         return np.linalg.norm(zero_mean_data - self.decode(self.encode(zero_mean_data)), ord=2) / zero_mean_data.shape[0]
 
-    def set_training_dir(self, training_dir):
-        self.training_dir = training_dir
 
 class VanilaAE(EncoderDecoder):
     """
@@ -72,7 +69,7 @@ class VanilaAE(EncoderDecoder):
         else:
             raise Exception("Mode no supported")
 
-    def learn_encoder_decoder(self, data):
+    def learn_encoder_decoder(self, data, plot_path=None):
         X = torch.tensor(data, requires_grad=False, dtype=torch.float32)
 
         optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.D.parameters()), lr=self.lr)
@@ -90,8 +87,8 @@ class VanilaAE(EncoderDecoder):
 
             losses[0] += [loss.item()]
 
-        if self.training_dir:
-            plot_training(losses, ["reconstruction_loss"], self.training_dir, self.name)
+        if plot_path:
+            plot_training(losses, ["reconstruction_loss"], plot_path)
 
     def encode(self, zero_mean_data):
         with torch.no_grad():
@@ -116,10 +113,11 @@ class ALAE(EncoderDecoder):
             self.G = torch.nn.Linear(latent_dim, data_dim)
             self.E = torch.nn.Linear(data_dim, latent_dim)
             self.D = torch.nn.Linear(latent_dim, 1)
+            # self.D = nn.Sequential(nn.Linear(latent_dim, 1), nn.Sigmoid())
         else:
             raise Exception("Mode no supported")
 
-    def learn_encoder_decoder(self, data):
+    def learn_encoder_decoder(self, data, plot_path=None):
         ED_optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.D.parameters()), lr=self.lr, betas=(0.0, 0.99))
         FG_optimizer = torch.optim.Adam(list(self.F.parameters()) + list(self.G.parameters()), lr=self.lr, betas=(0.0, 0.99))
         EG_optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.G.parameters()), lr=self.lr, betas=(0.0, 0.99))
@@ -159,8 +157,8 @@ class ALAE(EncoderDecoder):
             losses[2] += [L_err_EG.item()]
 
         # plot training
-        if self.training_dir:
-            plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], self.training_dir, self.name)
+        if plot_path:
+            plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], plot_path)
 
     def encode(self, zero_mean_data):
         with torch.no_grad():
@@ -200,7 +198,7 @@ class LatentRegressor(EncoderDecoder):
         self.BCE_loss = nn.BCELoss()
         self.sigmoid = nn.Sigmoid()
 
-    def learn_encoder_decoder(self, data):
+    def learn_encoder_decoder(self, data, plot_path=None):
         # Optimizers
         optimizer_G = torch.optim.Adam(self.G.parameters(), lr=self.lr, betas=(0.5, 0.999))
         optimizer_D = torch.optim.Adam(self.D.parameters(), lr=self.lr, betas=(0.5, 0.999))
@@ -245,8 +243,8 @@ class LatentRegressor(EncoderDecoder):
                 losses[3] += [self.regress_encoder(optimizer_E, z)]
 
         # plot training
-        if self.training_dir:
-            plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], self.training_dir, self.name)
+        if plot_path:
+            plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], plot_path)
 
     def regress_encoder(self, optimizer, latent_batch):
         optimizer.zero_grad()
