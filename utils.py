@@ -9,7 +9,7 @@ class simple_logger(object):
     def __init__(self, fname):
         self.file = open(fname, "w")
 
-    def log(self, txt, end="\n", stdout=True):
+    def log(self, txt, end="\n", stdout=False):
         self.file.write(txt + end)
         if stdout:
             print(txt, end=end)
@@ -60,3 +60,4 @@ def visualize_classification(data, predictions, labels, plot_path):
         ax.set_title(f"GT: {labels[i]}; Prediction: {predictions[i]}")
         ax.set_xticks([])
     plt.savefig(plot_path)
+    plt.clf()

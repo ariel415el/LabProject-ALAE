@@ -17,13 +17,13 @@ def get_dataset(dataset_name):
 def get_autoencoders(data_dim, latent_dim, linear_autoencoders):
     if linear_autoencoders:
         autoencoders = [
-            IdentityAutoEncoder(data_dim, None),
             AnalyticalPCA(data_dim, latent_dim),
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l1'),
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l2'),
             LinearLatentRegressor(data_dim, latent_dim, optimization_steps=1000, regressor_training="separate"),
             LinearLatentRegressor(data_dim, latent_dim, optimization_steps=1000, regressor_training="joint"),
-            LinearALAE(data_dim, latent_dim, optimization_steps=5000,lr=0.0005, batch_size=128)
+            LinearALAE(data_dim, latent_dim, optimization_steps=5000,lr=0.0005, batch_size=128),
+            IdentityAutoEncoder(data_dim, None)
         ]
     else:
         raise NotImplementedError
@@ -75,6 +75,8 @@ def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
 
     for ae in autoencoders:
         logger.log(f"{ae}", end="")
+        print(ae)
+
         # Learn encoding on train data train on it and test on test encodings
         ae.learn_encoder_decoder(train_data, os.path.join(outputs_dir,"Training-autoencoder", f"Learning-{ae}.png"))
 
@@ -83,8 +85,11 @@ def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
         projected_data = (projected_train_data, projected_test_data)
 
         # Run T-SNE
+        start = time()
+        print("\tRunning T-SNE... ", end="")
         plot_tsne(projected_train_data, train_labels, os.path.join(outputs_dir, "T-SNE", f"{ae}-Train.png"))
         plot_tsne(projected_test_data, test_labels, os.path.join(outputs_dir, "T-SNE", f"{ae}-Test.png"))
+        print(f"Finished in {time() - start:.2f} sec")
 
         for evaluator in evaluation_methods:
             result_str = evaluator.evaluate(ae, data, projected_data,

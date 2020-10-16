@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from utils import plot_training
 import torch.nn.functional as F
-
+from time import time
 
 class BiGanMLP(nn.Module):
     def __init__(self, input_shape, hidden_dim=1024):
@@ -86,6 +86,8 @@ class VanilaAE(EncoderDecoder):
             raise Exception("Mode no supported")
 
     def learn_encoder_decoder(self, data, plot_path=None):
+        start = time()
+        print("\tLearning encoder decoder... ",end="")
         X = torch.tensor(data, requires_grad=False, dtype=torch.float32)
 
         optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.D.parameters()), lr=self.lr)
@@ -105,6 +107,8 @@ class VanilaAE(EncoderDecoder):
 
         if plot_path:
             plot_training(losses, ["reconstruction_loss"], plot_path)
+
+        print(f"Finished in {time() - start:.2f} sec")
 
     def encode(self, zero_mean_data):
         with torch.no_grad():
@@ -134,6 +138,8 @@ class ALAE(EncoderDecoder):
             raise Exception("Mode no supported")
 
     def learn_encoder_decoder(self, data, plot_path=None):
+        start = time()
+        print("\tLearning encoder decoder... ",end="")
         ED_optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.D.parameters()), lr=self.lr, betas=(0.0, 0.99))
         FG_optimizer = torch.optim.Adam(list(self.F.parameters()) + list(self.G.parameters()), lr=self.lr, betas=(0.0, 0.99))
         EG_optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.G.parameters()), lr=self.lr, betas=(0.0, 0.99))
@@ -150,7 +156,7 @@ class ALAE(EncoderDecoder):
             batch_real_data = X[torch.randint(data.shape[0], (self.batch_size,))]
             batch_latent_vectors = torch.tensor(np.random.normal(0,1,size=(self.batch_size, self.z_dim)), requires_grad=False, dtype=torch.float32)
             L_adv_ED = softplus(self.D(self.E(self.G(self.F(batch_latent_vectors))))).mean() + softplus(-self.D(self.E(batch_real_data))).mean()
-                        # TODO: + R1 gradient regularization as in paper
+            # TODO: + R1 gradient regularization as in paper
             L_adv_ED.backward()
             ED_optimizer.step()
 
@@ -175,6 +181,8 @@ class ALAE(EncoderDecoder):
         # plot training
         if plot_path:
             plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], plot_path)
+
+        print(f"Finished in {time() - start:.2f} sec")
 
     def encode(self, zero_mean_data):
         with torch.no_grad():
@@ -215,6 +223,8 @@ class LatentRegressor(EncoderDecoder):
         self.sigmoid = nn.Sigmoid()
 
     def learn_encoder_decoder(self, data, plot_path=None):
+        start = time()
+        print("\tLearning encoder decoder... ",end="")
         # Optimizers
         optimizer_G = torch.optim.Adam(self.G.parameters(), lr=self.lr, betas=(0.5, 0.999))
         optimizer_D = torch.optim.Adam(self.D.parameters(), lr=self.lr, betas=(0.5, 0.999))
@@ -261,6 +271,8 @@ class LatentRegressor(EncoderDecoder):
         # plot training
         if plot_path:
             plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], plot_path)
+
+        print(f"Finished in {time() - start:.2f} sec")
 
     def regress_encoder(self, optimizer, latent_batch):
         optimizer.zero_grad()

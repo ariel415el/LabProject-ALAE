@@ -5,7 +5,7 @@ from torch.utils.data.dataset import Dataset
 import numpy as np
 from sklearn import svm
 from utils import plot_training_accuracies, visualize_classification
-
+from time import time
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -26,10 +26,14 @@ class ReconstructionLossEvaluator(Evaluateor):
         self.name = "ReconstructionLoss-(L2)"
 
     def evaluate(self, ae, data, projected_data, plot_path):
+        start = time()
+        print(f"\t{self.name}  evaluating...", end="")
         if not hasattr(ae, "get_reconstuction_loss"):
             return "NA"
         train_data, _, test_data, _ = data
-        return f"{ae.get_reconstuction_loss(train_data):.4f}/{ae.get_reconstuction_loss(test_data):.4f}"
+        result = f"{ae.get_reconstuction_loss(train_data):.4f}/{ae.get_reconstuction_loss(test_data):.4f}"
+        print(f"Finished in {time() - start:.2f} sec")
+        return result
 
 
 class OrthonormalityEvaluator(Evaluateor):
@@ -38,9 +42,15 @@ class OrthonormalityEvaluator(Evaluateor):
         self.name = "OrthonormalityEvaluator"
 
     def evaluate(self, ae, data, projected_data, plot_path):
+        start = time()
+        print(f"\t{self.name}  evaluating...", end="")
         if not hasattr(ae, "get_orthonormality_loss"):
-            return "NA"
-        return f"{ae.get_orthonormality_loss():.4f}"
+            result = "NA"
+        else:
+            result =  f"{ae.get_orthonormality_loss():.4f}"
+            
+        print(f"Finished in {time() - start:.2f} sec")
+        return result
 
 
 class SVMClassification(Evaluateor):
@@ -50,6 +60,9 @@ class SVMClassification(Evaluateor):
         self.classifier = svm.SVC(C=SVC_C, kernel="linear")
 
     def evaluate(self, ae, data, projected_data, plot_path):
+        start = time()
+        print(f"\t{self.name}  evaluating...", end="")
+
         train_data, train_labels, test_data, test_labels = data
         projected_train_data, projected_test_data = projected_data
         self.classifier.fit(projected_train_data, train_labels)
@@ -57,10 +70,12 @@ class SVMClassification(Evaluateor):
         test_predictions = self.classifier.predict(projected_test_data)
         train_accuracy = np.mean(train_labels == train_predictions)*100
         test_accuracy = np.mean(test_labels == test_predictions) * 100
+        result = f"{train_accuracy:.2f}/{test_accuracy:.2f}"
 
         visualize_classification(train_data[:10], train_predictions[:10], train_labels[:10], plot_path)
 
-        return f"{train_accuracy:.2f}/{test_accuracy:.2f}"
+        print(f"Finished in {time() - start:.2f} sec")
+        return result
 
 
 def compute_1nn_accuracy(data, labels):
@@ -79,10 +94,15 @@ class FirstNearestNeighbor(Evaluateor):
         self.name = "1NN-classification"
 
     def evaluate(self, ae, data, projected_data, plot_path):
+        start = time()
+        print(f"\t{self.name}  evaluating...", end="")
+
         train_data, train_labels, test_data, test_labels = data
         projected_train_data, projected_test_data = projected_data
-        return f"{compute_1nn_accuracy(projected_train_data, train_labels):.2f}/{compute_1nn_accuracy(projected_test_data, test_labels):.2f}"
+        result = f"{compute_1nn_accuracy(projected_train_data, train_labels):.2f}/{compute_1nn_accuracy(projected_test_data, test_labels):.2f}"
 
+        print(f"Finished in {time() - start:.2f} sec")
+        return result
 
 class EncodingsDataset(Dataset):
     def __init__(self, data, labels):
@@ -167,8 +187,14 @@ class MLP_classification(Evaluateor):
         self.log_interval = log_interval
 
     def evaluate(self, ae, data, projected_data, plot_path):
+        start = time()
+        print(f"\t{self.name}  evaluating...", end="")
+
         dataset = (projected_data[0], data[1], projected_data[1], data[3])
-        return self.train_mlp_classifier(dataset, plot_path)
+        result = self.train_mlp_classifier(dataset, plot_path)
+
+        print(f"Finished in {time() - start:.2f} sec")
+        return result
 
     def train_mlp_classifier(self, data, plot_path):
         train_data, train_labels, test_data, test_labels = data
@@ -206,3 +232,4 @@ class MLP_classification(Evaluateor):
 
         return f"{train_accuracies[-1]:.2f}/{test_accuracies[-1]:.2f}"
 
+# def scatter_tsne(train_data, test_data, train_labels, test_labels)

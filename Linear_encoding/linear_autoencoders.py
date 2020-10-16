@@ -35,6 +35,9 @@ class AnalyticalPCA(LinearAutoEncoder):
         Perform PCA by triming the result orthonormal transformation of SVD
         Assumes X is zero centered
         """
+        start = time()
+        print("\tLearning encoder decoder... ",end="")
+
         CovMat = np.dot(data.transpose(),data)
 
         vals, vecs = np.linalg.eigh(CovMat)
@@ -44,6 +47,8 @@ class AnalyticalPCA(LinearAutoEncoder):
 
         self.projection_matrix = vecs[order].transpose()
         self.restoration_matrix = vecs[order]
+
+        print(f"Finished in {time() - start:.2f} sec")
 
 
 class NumericMinimizationPCA(LinearAutoEncoder):
