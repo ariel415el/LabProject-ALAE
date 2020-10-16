@@ -151,3 +151,4 @@ class LinearLatentRegressor(LinearAutoEncoder):
 
         self.projection_matrix = self.LatentRegressor.E.weight.t().detach().numpy()
         self.restoration_matrix = self.LatentRegressor.G.weight.t().detach().numpy()
+

@@ -50,6 +50,22 @@ class EncoderDecoder(object):
         return np.linalg.norm(zero_mean_data - self.decode(self.encode(zero_mean_data)), ord=2) / zero_mean_data.shape[0]
 
 
+class IdentityAutoEncoder(EncoderDecoder):
+    def __init__(self, data_dim, latent_dim):
+        super(IdentityAutoEncoder, self).__init__(data_dim, latent_dim)
+        assert(latent_dim is None or data_dim == latent_dim)
+        self.name = "OriginalData"
+
+    def learn_encoder_decoder(self, data, plot_path=None):
+        pass
+
+    def encode(self, zero_mean_data):
+        return zero_mean_data
+
+    def decode(self, zero_mean_data):
+        return zero_mean_data
+
+
 class VanilaAE(EncoderDecoder):
     """
     SGD minimzation of reconstruction loss ||X - XED|| where E and D are any

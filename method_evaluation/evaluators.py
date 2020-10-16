@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.utils.data.dataset import Dataset
 import numpy as np
 from sklearn import svm
-from utils import plot_training_accuracies
+from utils import plot_training_accuracies, visualize_classification
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -26,6 +26,8 @@ class ReconstructionLossEvaluator(Evaluateor):
         self.name = "ReconstructionLoss-(L2)"
 
     def evaluate(self, ae, data, projected_data, plot_path):
+        if not hasattr(ae, "get_reconstuction_loss"):
+            return "NA"
         train_data, _, test_data, _ = data
         return f"{ae.get_reconstuction_loss(train_data):.4f}/{ae.get_reconstuction_loss(test_data):.4f}"
 
@@ -36,6 +38,8 @@ class OrthonormalityEvaluator(Evaluateor):
         self.name = "OrthonormalityEvaluator"
 
     def evaluate(self, ae, data, projected_data, plot_path):
+        if not hasattr(ae, "get_orthonormality_loss"):
+            return "NA"
         return f"{ae.get_orthonormality_loss():.4f}"
 
 
@@ -49,8 +53,13 @@ class SVMClassification(Evaluateor):
         train_data, train_labels, test_data, test_labels = data
         projected_train_data, projected_test_data = projected_data
         self.classifier.fit(projected_train_data, train_labels)
-        train_accuracy = np.mean(train_labels == self.classifier.predict(projected_train_data))*100
-        test_accuracy = np.mean(test_labels == self.classifier.predict(projected_test_data)) * 100
+        train_predictions = self.classifier.predict(projected_train_data)
+        test_predictions = self.classifier.predict(projected_test_data)
+        train_accuracy = np.mean(train_labels == train_predictions)*100
+        test_accuracy = np.mean(test_labels == test_predictions) * 100
+
+        visualize_classification(train_data[:10], train_predictions[:10], train_labels[:10], plot_path)
+
         return f"{train_accuracy:.2f}/{test_accuracy:.2f}"
 
 

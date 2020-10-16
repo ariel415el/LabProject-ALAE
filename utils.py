@@ -46,3 +46,17 @@ def plot_training_accuracies(train_accuracies, test_accuracies, plot_path):
     plt.legend()
     plt.savefig(plot_path)
     plt.clf()
+
+
+def visualize_classification(data, predictions, labels, plot_path):
+    os.makedirs(os.path.dirname(plot_path), exist_ok=True)
+    num_samples_root = int(np.sqrt(len(data)))
+    num_samples = int(num_samples_root**2)
+    img_size = int(np.sqrt(len(data[0])))
+    fig = plt.figure(figsize=(15, 10))
+    for i in range(num_samples):
+        ax = fig.add_subplot(num_samples_root, num_samples_root, 1 + i)
+        ax.imshow(data[i].reshape(img_size, img_size))
+        ax.set_title(f"GT: {labels[i]}; Prediction: {predictions[i]}")
+        ax.set_xticks([])
+    plt.savefig(plot_path)

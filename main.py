@@ -3,8 +3,9 @@ from datasets import get_mnist, get_sklearn_digits
 from autoencoders import VanilaAE, ALAE, LatentRegressor
 from utils import simple_logger, plot_tsne
 import argparse
-from Linear_encoding.linear_autoencoders import LinearVanilaAE ,LinearALAE, LinearLatentRegressor, AnalyticalPCA
+from Linear_encoding.linear_autoencoders import LinearVanilaAE ,LinearALAE, LinearLatentRegressor, AnalyticalPCA, IdentityAutoEncoder
 from method_evaluation.evaluators import *
+
 
 def get_dataset(dataset_name):
     if dataset_name.lower() == 'digits':
@@ -16,6 +17,7 @@ def get_dataset(dataset_name):
 def get_autoencoders(data_dim, latent_dim, linear_autoencoders):
     if linear_autoencoders:
         autoencoders = [
+            IdentityAutoEncoder(data_dim, None),
             AnalyticalPCA(data_dim, latent_dim),
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l1'),
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l2'),
@@ -80,7 +82,8 @@ def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
         projected_test_data = ae.encode(test_data)
         projected_data = (projected_train_data, projected_test_data)
 
-        plot_tsne(projected_train_data, train_labels, os.path.join(outputs_dir,"T-SNE", f"{ae}-Train.png"))
+        # Run T-SNE
+        plot_tsne(projected_train_data, train_labels, os.path.join(outputs_dir, "T-SNE", f"{ae}-Train.png"))
         plot_tsne(projected_test_data, test_labels, os.path.join(outputs_dir, "T-SNE", f"{ae}-Test.png"))
 
         for evaluator in evaluation_methods:
