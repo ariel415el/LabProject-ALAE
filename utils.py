@@ -28,7 +28,7 @@ def plot_training(losses, names, plot_path):
 
 def plot_tsne(data, labels, plot_path):
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)
-    clustered_data = TSNE(n_components=2).fit_transform(data)
+    clustered_data = TSNE(n_components=2, perplexity=40, n_iter=300).fit_transform(data)
     possible_labels = np.sort(np.unique(labels))
     colors = cm.rainbow(np.linspace(0, 1, len(possible_labels)))
     for label in possible_labels:

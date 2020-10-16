@@ -27,7 +27,7 @@ class ReconstructionLossEvaluator(Evaluateor):
 
     def evaluate(self, ae, data, projected_data, plot_path):
         start = time()
-        print(f"\t{self.name}  evaluating...", end="")
+        print(f"\t{self.name} evaluating... ", end="")
         if not hasattr(ae, "get_reconstuction_loss"):
             return "NA"
         train_data, _, test_data, _ = data
@@ -43,7 +43,7 @@ class OrthonormalityEvaluator(Evaluateor):
 
     def evaluate(self, ae, data, projected_data, plot_path):
         start = time()
-        print(f"\t{self.name}  evaluating...", end="")
+        print(f"\t{self.name} evaluating... ", end="")
         if not hasattr(ae, "get_orthonormality_loss"):
             result = "NA"
         else:
@@ -61,7 +61,7 @@ class SVMClassification(Evaluateor):
 
     def evaluate(self, ae, data, projected_data, plot_path):
         start = time()
-        print(f"\t{self.name}  evaluating...", end="")
+        print(f"\t{self.name} evaluating... ", end="")
 
         train_data, train_labels, test_data, test_labels = data
         projected_train_data, projected_test_data = projected_data
@@ -95,7 +95,7 @@ class FirstNearestNeighbor(Evaluateor):
 
     def evaluate(self, ae, data, projected_data, plot_path):
         start = time()
-        print(f"\t{self.name}  evaluating...", end="")
+        print(f"\t{self.name} evaluating... ", end="")
 
         train_data, train_labels, test_data, test_labels = data
         projected_train_data, projected_test_data = projected_data
@@ -188,7 +188,7 @@ class MLP_classification(Evaluateor):
 
     def evaluate(self, ae, data, projected_data, plot_path):
         start = time()
-        print(f"\t{self.name}  evaluating...", end="")
+        print(f"\t{self.name} evaluating... ", end="")
 
         dataset = (projected_data[0], data[1], projected_data[1], data[3])
         result = self.train_mlp_classifier(dataset, plot_path)

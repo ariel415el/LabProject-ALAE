@@ -68,6 +68,8 @@ def main(args):
 
 def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
     train_data, train_labels, test_data, test_labels = data
+    print(f"run_analysis on {len(train_data)} train and {len(test_data)} samples")
+
 
     # normalizer data
     train_data = train_data - train_data.mean(0)
@@ -80,9 +82,11 @@ def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
         # Learn encoding on train data train on it and test on test encodings
         ae.learn_encoder_decoder(train_data, os.path.join(outputs_dir,"Training-autoencoder", f"Learning-{ae}.png"))
 
+        start = time()
+        print("\tProjecting Data... ", end="")
         projected_train_data = ae.encode(train_data)
         projected_test_data = ae.encode(test_data)
-        projected_data = (projected_train_data, projected_test_data)
+        print(f"Finished in {time() - start:.2f} sec")
 
         # Run T-SNE
         start = time()
@@ -91,6 +95,7 @@ def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
         plot_tsne(projected_test_data, test_labels, os.path.join(outputs_dir, "T-SNE", f"{ae}-Test.png"))
         print(f"Finished in {time() - start:.2f} sec")
 
+        projected_data = (projected_train_data, projected_test_data)
         for evaluator in evaluation_methods:
             result_str = evaluator.evaluate(ae, data, projected_data,
                                             plot_path=os.path.join(outputs_dir, "Evaluation", f"{evaluator}_{ae}.png"))
