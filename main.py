@@ -68,7 +68,7 @@ def main(args):
 
 def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
     train_data, train_labels, test_data, test_labels = data
-    print(f"run_analysis on {len(train_data)} train and {len(test_data)} samples")
+    print(f"run_analysis on {len(train_data)} train and {len(test_data)} test samples")
 
 
     # normalizer data

@@ -80,8 +80,8 @@ class VanilaAE(EncoderDecoder):
         self.name = f"VanilaAE({metric})_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]"
         self.metric = F.l1_loss if metric == 'l1' else F.mse_loss
         if mode == "Linear":
-            self.E = torch.nn.Linear(data_dim, latent_dim)
-            self.D = torch.nn.Linear(latent_dim, data_dim)
+            self.E = torch.nn.Linear(data_dim, latent_dim, bias=False)
+            self.D = torch.nn.Linear(latent_dim, data_dim, bias=False)
         else:
             raise Exception("Mode no supported")
 
@@ -129,10 +129,10 @@ class ALAE(EncoderDecoder):
         self.name = f"ALAE_z_dim[{z_dim}]_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]"
 
         if mode == "Linear":
-            self.F = torch.nn.Linear(self.z_dim, latent_dim)
-            self.G = torch.nn.Linear(latent_dim, data_dim)
-            self.E = torch.nn.Linear(data_dim, latent_dim)
-            self.D = torch.nn.Linear(latent_dim, 1)
+            self.F = torch.nn.Linear(self.z_dim, latent_dim, bias=False)
+            self.G = torch.nn.Linear(latent_dim, data_dim, bias=False)
+            self.E = torch.nn.Linear(data_dim, latent_dim, bias=False)
+            self.D = torch.nn.Linear(latent_dim, 1, bias=False)
             # self.D = nn.Sequential(nn.Linear(latent_dim, 1), nn.Sigmoid())
         else:
             raise Exception("Mode no supported")
@@ -211,10 +211,10 @@ class LatentRegressor(EncoderDecoder):
             self.name = "J" + self.name
 
         if mode == "Linear":
-            self.G = nn.Linear(latent_dim, data_dim)
-            self.E = nn.Linear(data_dim, latent_dim)
+            self.G = nn.Linear(latent_dim, data_dim, bias=False)
+            self.E = nn.Linear(data_dim, latent_dim, bias=False)
             # self.D = nn.Linear(data_dim, 1)
-            self.D = nn.Sequential(nn.Linear(data_dim, 1), nn.Sigmoid())
+            self.D = nn.Sequential(nn.Linear(data_dim, 1, bias=False), nn.Sigmoid())
 
         else:
             raise Exception("Mode no supported")
