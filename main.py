@@ -1,7 +1,7 @@
 import os
 from datasets import get_mnist, get_sklearn_digits
 from autoencoders import VanilaAE, ALAE, LatentRegressor
-from utils import simple_logger, plot_tsne
+from utils import simple_logger, plot_tsne, plot_latent_interpolation
 import argparse
 from Linear_encoding.linear_autoencoders import LinearVanilaAE ,LinearALAE, LinearLatentRegressor, AnalyticalPCA, IdentityAutoEncoder
 from method_evaluation.evaluators import *
@@ -20,8 +20,8 @@ def get_autoencoders(data_dim, latent_dim, linear_autoencoders):
             AnalyticalPCA(data_dim, latent_dim),
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l1'),
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l2'),
-            LinearLatentRegressor(data_dim, latent_dim, optimization_steps=1000, regressor_training="separate"),
-            LinearLatentRegressor(data_dim, latent_dim, optimization_steps=1000, regressor_training="joint"),
+            LinearLatentRegressor(data_dim, latent_dim, optimization_steps=5000, regressor_training="separate"),
+            LinearLatentRegressor(data_dim, latent_dim, optimization_steps=5000, regressor_training="joint"),
             LinearALAE(data_dim, latent_dim, optimization_steps=5000,lr=0.0005, batch_size=128),
             IdentityAutoEncoder(data_dim, None)
         ]
@@ -86,6 +86,12 @@ def run_analysis(autoencoders, data,  evaluation_methods, outputs_dir, logger):
         print("\tProjecting Data... ", end="")
         projected_train_data = ae.encode(train_data)
         projected_test_data = ae.encode(test_data)
+        print(f"Finished in {time() - start:.2f} sec")
+
+        start = time()
+        print("\tVisualizing latent interpolation... ", end="")
+        plot_latent_interpolation(ae, train_data, train_labels, plot_path=os.path.join(outputs_dir, "Latent-interpollation", f"{ae}-Train.png"))
+        plot_latent_interpolation(ae, test_data, test_labels, plot_path=os.path.join(outputs_dir, "Latent-interpollation", f"{ae}-Test.png"))
         print(f"Finished in {time() - start:.2f} sec")
 
         # Run T-SNE

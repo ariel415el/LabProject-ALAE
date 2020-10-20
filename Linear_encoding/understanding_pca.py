@@ -12,19 +12,19 @@ COLORS = ['r','g','b','c','k']
 def understand_pca_3d(data, colors):
     data_max = np.abs(data).max() * 1.2
     latent_dim = 2
-
+    S=5
     # plot data
     fig = plt.figure(figsize=(15, 10))
     ax1 = fig.add_subplot(2, 2, 1, projection='3d')
     ax1.set_title("Analytical PCA")
-    ax1.scatter(data[:, 0], data[:, 1], data[:, 2], c=colors, cmap=plt.cm.Spectral, s=0.5)
+    ax1.scatter(data[:, 0], data[:, 1], data[:, 2], c=colors, cmap=plt.cm.Spectral, s=S)
     ax1.set_xlim(-data_max, data_max)
     ax1.set_ylim(-data_max, data_max)
     ax1.set_zlim(-data_max, data_max)
 
     ax2 = fig.add_subplot(2, 2, 2, projection='3d')
     ax2.set_title("Numeric PCA")
-    ax2.scatter(data[:, 0], data[:, 1], data[:, 2], c=colors, cmap=plt.cm.Spectral, s=0.5)
+    ax2.scatter(data[:, 0], data[:, 1], data[:, 2], c=colors, cmap=plt.cm.Spectral, s=S)
     ax2.set_xlim(-data_max, data_max)
     ax2.set_ylim(-data_max, data_max)
     ax2.set_zlim(-data_max, data_max)
@@ -61,7 +61,7 @@ def understand_pca_3d(data, colors):
         ax.set_title(f"projected-points\n"
                      f"Reconstuction {ae.get_reconstuction_loss(zero_mean_data):.5f}, "
                      f"Orthonormality {ae.get_orthonormality_loss():.5f}")
-        ax.scatter(projected_points[:,0], projected_points[:,1] , c=colors, s=0.5)
+        ax.scatter(projected_points[:,0], projected_points[:,1] , c=colors, s=S)
         ax.set_xlim(-data_max, data_max)
         ax.set_ylim(-data_max, data_max)
 
