@@ -48,7 +48,7 @@ class AnalyticalPCA(LinearAutoEncoder):
 
         # vals_np, vecs_np = np.linalg.eigh(CovMat)
         # # Take rows corresponding to highest eiegenvalues
-        # order = np.argsort(vals_np,)[::-1][:self.latent_dim]
+        # order = np.argsort(vals_np)[::-1][:self.latent_dim]
         # self.projection_matrix = vecs_np[order].transpose()
         # self.restoration_matrix = vecs_np[order]
 

@@ -82,18 +82,20 @@ def main(args):
         projected_test_data = ae.encode(test_data)
         print(f"Finished in {time() - start:.2f} sec")
 
-        start = time()
-        print("\tVisualizing latent interpolation... ", end="")
-        plot_latent_interpolation(ae, train_data, plot_path=os.path.join(output_dir, "Latent-interpollation", f"{ae}-Train.png"))
-        plot_latent_interpolation(ae, test_data, plot_path=os.path.join(output_dir, "Latent-interpollation", f"{ae}-Test.png"))
-        print(f"Finished in {time() - start:.2f} sec")
+        if args.plot_latent_interpolation:
+            start = time()
+            print("\tVisualizing latent interpolation... ", end="")
+            plot_latent_interpolation(ae, train_data, plot_path=os.path.join(output_dir, "Latent-interpollation", f"{ae}-Train.png"))
+            plot_latent_interpolation(ae, test_data, plot_path=os.path.join(output_dir, "Latent-interpollation", f"{ae}-Test.png"))
+            print(f"Finished in {time() - start:.2f} sec")
 
-        # # Run T-SNE
-        # start = time()
-        # print("\tRunning T-SNE... ", end="")
-        # plot_tsne(projected_train_data, train_labels, os.path.join(outputs_dir, "T-SNE", f"{ae}-Train.png"))
-        # plot_tsne(projected_test_data, test_labels, os.path.join(outputs_dir, "T-SNE", f"{ae}-Test.png"))
-        # print(f"Finished in {time() - start:.2f} sec")
+        if args.plot_tsne:
+            # Run T-SNE
+            start = time()
+            print("\tRunning T-SNE... ", end="")
+            plot_tsne(projected_train_data, train_labels, os.path.join(output_dir, "T-SNE", f"{ae}-Train.png"))
+            plot_tsne(projected_test_data, test_labels, os.path.join(output_dir, "T-SNE", f"{ae}-Test.png"))
+            print(f"Finished in {time() - start:.2f} sec")
 
         projected_data = (projected_train_data, projected_test_data)
         for evaluator in evaluation_methods:
@@ -109,6 +111,8 @@ if __name__ == '__main__':
     parser.add_argument("--dataset", type=str, default='digits')
     parser.add_argument("--linear", action='store_true')
     parser.add_argument("--latent_dim", type=int, default=10)
+    parser.add_argument("--plot_tsne", action='store_true', default=False)
+    parser.add_argument("--plot_latent_interpolation", action='store_true', default=False)
 
     args = parser.parse_args()
 
