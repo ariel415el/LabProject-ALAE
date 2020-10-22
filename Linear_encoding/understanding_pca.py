@@ -29,22 +29,21 @@ def understand_pca_3d(data, colors):
     ax2.set_ylim(-data_max, data_max)
     ax2.set_zlim(-data_max, data_max)
 
-    mean = data.mean(0)
-    zero_mean_data = data - mean
-
     # analytic pca
     analytic_pca = AnalyticalPCA(data.shape[1], latent_dim)
-    analytic_pca.learn_encoder_decoder(zero_mean_data)
+    analytic_pca.learn_encoder_decoder(data)
 
     numeric_pca = NumericMinimizationPCA(data.shape[1], latent_dim, optimization_steps=10000, regularization_factor=20)
-    numeric_pca.learn_encoder_decoder(zero_mean_data)
+    numeric_pca.learn_encoder_decoder(data)
+
 
     # show reconstruction loss and orthonormality constraint
     for ae in [analytic_pca, numeric_pca]:
         print(f"{ae}")
-        projected_points = ae.encode(zero_mean_data)
-        print(f"\tReconstruction loss: {ae.get_reconstuction_loss(zero_mean_data):.4f}" )
+        print(f"\tReconstruction loss: {ae.get_reconstuction_loss(data):.4f}" )
         print(f"\tOrthonormality loss {ae.get_orthonormality_loss():.4f}" )
+
+    mean = data.mean(0)
 
     # plot pcs on data
     for ae, ax in zip([analytic_pca, numeric_pca], [ax1,ax2]):
@@ -56,10 +55,10 @@ def understand_pca_3d(data, colors):
 
     # plot projection into 2d
     for i, ae in enumerate([analytic_pca, numeric_pca]):
-        projected_points = ae.encode(zero_mean_data)
+        projected_points = ae.encode(data)
         ax = fig.add_subplot(2, 2, 3 + i)
         ax.set_title(f"projected-points\n"
-                     f"Reconstuction {ae.get_reconstuction_loss(zero_mean_data):.5f}, "
+                     f"Reconstuction {ae.get_reconstuction_loss(data):.5f}, "
                      f"Orthonormality {ae.get_orthonormality_loss():.5f}")
         ax.scatter(projected_points[:,0], projected_points[:,1] , c=colors, s=S)
         ax.set_xlim(-data_max, data_max)

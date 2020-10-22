@@ -63,32 +63,35 @@ def visualize_classification(data, predictions, labels, plot_path):
     plt.clf()
 
 
-def plot_latent_interpolation(ae, data, labels, N=5, plot_path=None):
+def plot_latent_interpolation(ae, data, N=5, plot_path=None):
     im_dim = int(np.sqrt(len(data[0])))
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)
-    # Sample interpollation extremes
-    # unique_labels = np.unique(labels)
-    # different_labels = np.random.choice(unique_labels, 2, replace=False)
-    # np.random.choice()
-    start = data[0]
-    end = data[-1]
+    indices = np.random.randint(len(data), size=2)
+    start = data[indices[0]]
+    end = data[indices[1]]
 
     start_z = ae.encode(start)
     end_z = ae.encode(end)
 
     fig = plt.figure()
-    ax = fig.add_subplot(2, N, 1)
-    ax.imshow(start.reshape(im_dim, im_dim))
-    ax = fig.add_subplot(2, N, N)
-    ax.imshow(end.reshape(im_dim, im_dim))
+    ax = fig.add_subplot(3, N, 1)
+    ax.imshow(start.reshape(im_dim, im_dim), cmap='gray')
+    ax = fig.add_subplot(3, N, N)
+    ax.imshow(end.reshape(im_dim, im_dim), cmap='gray')
     for i, c in enumerate(np.arange(0, 1 + 1 / N, 1 / (N-1))):
         interpollated_z = (1-c) * start_z + c * end_z
-        img = ae.decode(interpollated_z)
-        ax = fig.add_subplot(2, N, N + 1 + i)
-        ax.set_title(str(c))
-        ax.imshow(img.reshape(im_dim, im_dim))
+        img = np.clip(ae.decode(interpollated_z), 0 , 1)
+        ax = fig.add_subplot(3, N, N + 1 + i)
+        ax.set_title(f"Latent {c}")
+        ax.imshow(img.reshape(im_dim, im_dim), cmap='gray')
         ax.set_xticks([])
         ax.set_yticks([])
 
+        interpollated_img = (1-c) * start + c * end
+        ax = fig.add_subplot(3, N, 2*N + 1 + i)
+        ax.set_title(f"Data {c}")
+        ax.imshow(interpollated_img.reshape(im_dim, im_dim), cmap='gray')
+        ax.set_xticks([])
+        ax.set_yticks([])
     plt.savefig(plot_path)
     plt.clf()

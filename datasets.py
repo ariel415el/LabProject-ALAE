@@ -37,21 +37,15 @@ def get_swiss_roll(plot=False):
 
 
 def get_mnist(data_dir="data"):
-    mnist_mean = 0.1307
-    mnist_std = 0.3081
-    # transform=transforms.Compose([
-    #     transforms.ToTensor(),
-    #     transforms.Normalize((0.1307,), (0.3081,))
-    #     ])
     train_dataset = tv_datasets.MNIST(data_dir, train=True, download=True)
     test_dataset = tv_datasets.MNIST(data_dir, train=False, download=True)
 
     train_data, train_labels = train_dataset.data.numpy().reshape(-1, 28*28), train_dataset.train_labels.numpy()
     test_data, test_labels = test_dataset.data.numpy().reshape(-1, 28*28), test_dataset.train_labels.numpy()
 
-    train_data = (train_data - mnist_mean) / mnist_std
-    test_data = (test_data - mnist_mean) / mnist_std
-
+    # normalize to 0-1
+    train_data = train_data / 255
+    test_data = test_data / 255
     return (train_data, train_labels, test_data, test_labels), "MNIST"
 
 

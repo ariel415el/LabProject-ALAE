@@ -5,29 +5,29 @@ from utils import plot_training
 import torch.nn.functional as F
 from time import time
 
-class BiGanMLP(nn.Module):
-    def __init__(self, input_shape, hidden_dim=1024):
-        super(BiGanMLP, self).__init__()
-        self.input_shape = input_shape
-        self.fc1 = nn.Linear(input_shape, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, 10)
-        self.droput = nn.BatchNorm2d
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.droput(x)
-        x = F.relu(self.fc2(x))
-        x = self.droput(x)
-        x = self.fc3(x)
-        x = F.log_softmax(x, dim=1)
-        return x
+# class BiGanMLP(nn.Module):
+#     def __init__(self, input_shape, hidden_dim=1024):
+#         super(BiGanMLP, self).__init__()
+#         self.input_shape = input_shape
+#         self.fc1 = nn.Linear(input_shape, hidden_dim)
+#         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+#         self.fc3 = nn.Linear(hidden_dim, 10)
+#         self.droput = nn.BatchNorm2d
+#
+#     def forward(self, x):
+#         x = F.relu(self.fc1(x))
+#         x = self.droput(x)
+#         x = F.relu(self.fc2(x))
+#         x = self.droput(x)
+#         x = self.fc3(x)
+#         x = F.log_softmax(x, dim=1)
+#         return x
 
 
 class EncoderDecoder(object):
     def __init__(self, data_dim, latent_dim):
         self.name = "AbstractEncoderDecoder"
-        self.data_dimdata_dim= data_dim
+        self.data_dim =  data_dim
         self.latent_dim = latent_dim
 
     def __str__(self):
@@ -132,8 +132,8 @@ class ALAE(EncoderDecoder):
             self.F = torch.nn.Linear(self.z_dim, latent_dim, bias=False)
             self.G = torch.nn.Linear(latent_dim, data_dim, bias=False)
             self.E = torch.nn.Linear(data_dim, latent_dim, bias=False)
-            self.D = torch.nn.Linear(latent_dim, 1, bias=False)
-            # self.D = nn.Sequential(nn.Linear(latent_dim, 1), nn.Sigmoid())
+            # self.D = torch.nn.Linear(latent_dim, 1, bias=False)
+            self.D = nn.Sequential(nn.Linear(latent_dim, 1), nn.Sigmoid())
         else:
             raise Exception("Mode no supported")
 
