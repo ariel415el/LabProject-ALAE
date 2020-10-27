@@ -3,7 +3,7 @@ Implementation of the paper "Adverserial Latent AutoEncoder" done for my MSc Lab
 The paper: https://arxiv.org/abs/2004.04467 \
 Official implementation https://github.com/podgorskiy/ALAE
 
-# Step one:
+# Step one: Linear AutoEncoders
 Implement ALAE with linear encoder and decoder and compare with PCA which is the optimal linear encoder. 
 1. Understanding PCA: PCA could be looked at as projected variance maximization 
     or reconstrcion loss minimization problems under the constraint that the encoding Linear
@@ -21,6 +21,11 @@ The main results of step 1:
 
 ##### Relevant materials #####
 - PCA: two sided problem: http://alexhwilliams.info/itsneuronalblog/2016/03/27/pca/
+
+# Step two: understanding GAN
+In the first step I failed to train both ALAE and Latent regressor which are trained adverserily.
+In this section I will experiment with GAN training and try to train ALAE on Mnist and
+reproduce the authors results on MNIST
 
 # Relevant papers:
 - Variational AutoEncoders: https://arxiv.org/abs/1312.6114

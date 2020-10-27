@@ -1,11 +1,10 @@
 import os
 from datasets import get_mnist, get_sklearn_digits
-from autoencoders import VanilaAE, ALAE, LatentRegressor
+from autoencoders import ALAE
 from utils import simple_logger, plot_tsne, plot_latent_interpolation
 import argparse
-from Linear_encoding.linear_autoencoders import LinearVanilaAE ,LinearALAE, LinearLatentRegressor, AnalyticalPCA,\
-    IdentityAutoEncoder, NumericMinimizationPCA, SKLearnPCA
-from method_evaluation.evaluators import *
+from Linear_encoding.linear_autoencoders import LinearVanilaAE ,LinearALAE, AnalyticalPCA
+from evaluators import *
 
 
 def get_dataset(dataset_name):
@@ -15,8 +14,8 @@ def get_dataset(dataset_name):
         return get_mnist(data_dir='data')
 
 
-def get_autoencoders(data_dim, latent_dim, linear_autoencoders):
-    if linear_autoencoders:
+def get_autoencoders(data_dim, latent_dim, autoencoders_type):
+    if autoencoders_type == "linear":
         autoencoders = [
             AnalyticalPCA(data_dim, latent_dim),
             # NumericMinimizationPCA(data_dim, latent_dim, optimization_steps=500),
@@ -25,8 +24,12 @@ def get_autoencoders(data_dim, latent_dim, linear_autoencoders):
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l2'),
             # LinearLatentRegressor(data_dim, latent_dim, optimization_steps=10000, lr=0.01, regressor_training="separate"),
             # LinearLatentRegressor(data_dim, latent_dim, optimization_steps=10000, lr=0.01, regressor_training="joint"),
-            LinearALAE(data_dim, latent_dim, optimization_steps=5000,lr=0.00001, batch_size=128),
+            LinearALAE(data_dim, latent_dim, optimization_steps=5000,lr=0.001, batch_size=128, z_dim=50),
             # IdentityAutoEncoder(data_dim, None)
+        ]
+    elif autoencoders_type == "MLP":
+        autoencoders = [
+            ALAE(data_dim, latent_dim, optimization_steps=10000, lr=0.005, batch_size=128, z_dim=latent_dim)
         ]
     else:
         raise NotImplementedError
@@ -34,7 +37,7 @@ def get_autoencoders(data_dim, latent_dim, linear_autoencoders):
     return autoencoders
 
 
-def get_evaluation_methods(linear_autoencoders, logger=None):
+def get_evaluation_methods(mode, logger=None):
     evaluaion_methods = [
         ReconstructionLossEvaluator(),
         # FirstNearestNeighbor(),
@@ -42,7 +45,7 @@ def get_evaluation_methods(linear_autoencoders, logger=None):
         # MLP_classification(epochs=20, batch_size=128, lr=0.002, lr_decay=0.999, log_interval=None),
     ]
 
-    if linear_autoencoders:
+    if mode == "linear":
         evaluaion_methods += [OrthonormalityEvaluator()]
 
     if logger:
@@ -56,15 +59,14 @@ def main(args):
     data, dataset_name = get_dataset(args.dataset)
     dataset_name = f"{dataset_name}-{args.latent_dim}"
 
-    autoencoders = get_autoencoders(data[0].shape[1], args.latent_dim, args.linear)
-
-    output_dir = os.path.join("outputs", dataset_name)
+    output_dir = os.path.join(f"outputs-{args.mode}", dataset_name)
     os.makedirs(output_dir, exist_ok=True)
 
     # set logger
     logger = simple_logger(os.path.join(output_dir, "results.csv"))
 
-    evaluation_methods = get_evaluation_methods(args.linear, logger)
+    autoencoders = get_autoencoders(data[0].shape[1], args.latent_dim, args.mode)
+    evaluation_methods = get_evaluation_methods(args.mode, logger)
 
     train_data, train_labels, test_data, test_labels = data
     print(f"run_analysis on {len(train_data)} train and {len(test_data)} test samples")
@@ -109,7 +111,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default='digits')
-    parser.add_argument("--linear", action='store_true')
+    parser.add_argument("--mode", default='linear', help="Experiment and modes type: linear, MLP or conv")
     parser.add_argument("--latent_dim", type=int, default=10)
     parser.add_argument("--plot_tsne", action='store_true', default=False)
     parser.add_argument("--plot_latent_interpolation", action='store_true', default=False)
