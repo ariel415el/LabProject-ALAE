@@ -2,7 +2,7 @@ from sklearn import datasets as sk_datasets
 import numpy as np
 import matplotlib.pyplot as plt
 from torchvision import datasets as tv_datasets
-from torchvision import transforms
+from torch.utils.data import Dataset
 
 
 def get_swiss_roll(plot=False):
@@ -20,21 +20,6 @@ def get_swiss_roll(plot=False):
         ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=color, cmap=plt.cm.Spectral,s=0.6)
         plt.show()
     return X, color
-
-# def get_mnist(data_dir="data/mnist"):
-#     os.makedirs(data_dir, exist_ok=True)
-#     fname = "train-images-idx3-ubyte.gz"
-#     if not os.path.exists(os.path.join(data_dir, fname)):
-#         url = f"http://yann.lecun.com/exdb/mnist/{fname}"
-#         urllib.request.urlretrieve(url, fname)
-#         gzip.open(fname, 'rb')
-#
-#     transform=transforms.Compose([
-#         transforms.ToTensor(),
-#         transforms.Normalize((0.1307,), (0.3081,))
-#         ])
-#     dataset1 = datasets.MNIST('../data', train=True, download=True, transform=transform)
-
 
 def get_mnist(data_dir="data"):
     train_dataset = tv_datasets.MNIST(data_dir, train=True, download=True)

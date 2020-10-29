@@ -4,6 +4,7 @@ import torch.nn as nn
 from utils import plot_training
 import torch.nn.functional as F
 from time import time
+import os
 
 class BiGanMLP(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dim=1024, activation=torch.nn.ReLU()):
@@ -11,14 +12,14 @@ class BiGanMLP(nn.Module):
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, output_dim)
-        self.batch_norm = nn.BatchNorm1d(hidden_dim)
+        # self.batch_norm = nn.BatchNorm1d(hidden_dim)
         self.activation = activation
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
         x = self.activation(x)
         x = self.fc2(x)
-        x = self.batch_norm(x)
+        # x = self.batch_norm(x)
         x = self.activation(x)
         x = self.fc3(x)
         return x
@@ -42,7 +43,7 @@ class EncoderDecoder(object):
     def __str__(self):
         return self.name
 
-    def learn_encoder_decoder(self, data, plot_path=None):
+    def learn_encoder_decoder(self, data, plot_dir=None):
         """
         Learns the encoder and decoder transformations from data
         :param laten_dim: size of the latent space of the desired encodings
@@ -65,7 +66,7 @@ class IdentityAutoEncoder(EncoderDecoder):
         assert(latent_dim is None or data_dim == latent_dim)
         self.name = "OriginalData"
 
-    def learn_encoder_decoder(self, data, plot_path=None):
+    def learn_encoder_decoder(self, data, plot_dir=None):
         pass
 
     def encode(self, zero_mean_data):
@@ -94,7 +95,7 @@ class VanilaAE(EncoderDecoder):
         else:
             raise Exception("Mode no supported")
 
-    def learn_encoder_decoder(self, data, plot_path=None):
+    def learn_encoder_decoder(self, data, plot_dir=None):
         start = time()
         print("\tLearning encoder decoder... ",end="")
         X = torch.tensor(data, requires_grad=False, dtype=torch.float32)
@@ -114,8 +115,8 @@ class VanilaAE(EncoderDecoder):
 
             losses[0] += [loss.item()]
 
-        if plot_path:
-            plot_training(losses, ["reconstruction_loss"], plot_path)
+        if plot_dir:
+            plot_training(losses, ["reconstruction_loss"], os.path.join(plot_dir, f"Learning-{self}.png"))
 
         print(f"Finished in {time() - start:.2f} sec")
 
@@ -128,14 +129,33 @@ class VanilaAE(EncoderDecoder):
             return self.D(torch.from_numpy(encodings).float()).numpy()
 
 
+from torch.utils.data import Dataset
+class SimpleDataset(Dataset):
+    def __init__(self, data_matrix):
+        # super(SimpleDataset, self).__init__()
+        self.data_matrix = data_matrix
+
+    def __len__(self):
+        return len(self.data_matrix)
+
+    def __getitem__(self, idx):
+        return self.data_matrix[idx]
+
+    def get_data(self):
+        return self.data_matrix
+
+
 class ALAE(EncoderDecoder):
-    def __init__(self, data_dim, latent_dim, z_dim=32, optimization_steps=1000, lr=0.002, batch_size=128, mode="Linear"):
+    def __init__(self, data_dim, latent_dim, z_dim=32, epochs=600, lr=0.002, batch_size=128,
+                 g_penalty_coeff=10.0, mode="Linear"):
         super(ALAE, self).__init__(data_dim, latent_dim)
-        self.optimization_steps = optimization_steps
+        self.epochs = epochs
         self.lr = lr
         self.z_dim = z_dim
+        self.g_penalty_coeff = g_penalty_coeff
         self.batch_size = batch_size
-        self.name = f"ALAE_z_dim[{z_dim}]_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]"
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.name = f"ALAE_z_dim[{z_dim}]_e[{epochs}]_lr[{lr}]_b[{batch_size}]"
 
         if mode == "Linear":
             self.F = torch.nn.Linear(self.z_dim, latent_dim, bias=False)
@@ -154,65 +174,77 @@ class ALAE(EncoderDecoder):
                                    nn.Linear(latent_dim, latent_dim), nn.LeakyReLU(0.2),
                                    nn.Linear(latent_dim, latent_dim))
             self.G = BiGanMLP(latent_dim, data_dim, 1024)
-            self.E = BiGanMLP(data_dim, latent_dim, 1024, activation=nn.LeakyReLU(0.2))
+            self.E = nn.Sequential(BiGanMLP(data_dim, latent_dim, 1024, activation=nn.LeakyReLU(0.2)), nn.LeakyReLU(0.2))
             self.D = BiGanMLP(latent_dim, 1, 1024, activation=nn.LeakyReLU(0.2))
         else:
             raise Exception("Mode no supported")
 
-    def learn_encoder_decoder(self, data, plot_path=None):
+    def learn_encoder_decoder(self, data, plot_dir=None):
         start = time()
         print("\tLearning encoder decoder... ",end="")
+        dataset = SimpleDataset(data)
+        kwargs = {'batch_size': self.batch_size}
+        if self.device != "cpu":
+            kwargs.update({'num_workers': 1,
+                           'pin_memory': True,
+                           'shuffle': True},
+                          )
+
+        train_loader = torch.utils.data.DataLoader(dataset, **kwargs)
+
         ED_optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.D.parameters()), lr=self.lr, betas=(0.0, 0.99))
         FG_optimizer = torch.optim.Adam(list(self.F.parameters()) + list(self.G.parameters()), lr=self.lr, betas=(0.0, 0.99))
         EG_optimizer = torch.optim.Adam(list(self.E.parameters()) + list(self.G.parameters()), lr=self.lr, betas=(0.0, 0.99))
 
         softplus = F.softplus
         mse = F.mse_loss
-        X = torch.tensor(data, requires_grad=True, dtype=torch.float32)
+        # X = torch.tensor(data, requires_grad=True, )
 
         losses = [[], [], []]
 
-        for s in range(self.optimization_steps):
-            # Step I. Update E, and D:  Optimize the discriminator D(E( * )) to better differentiate between real x data
-            # and data generated by G(F( * ))
-            ED_optimizer.zero_grad()
-            batch_real_data = X[torch.randint(data.shape[0], (self.batch_size,))]
-            batch_latent_vectors = torch.tensor(np.random.normal(0,1,size=(self.batch_size, self.z_dim)), requires_grad=False, dtype=torch.float32)
-            real_images_dicriminator_outputs = self.D(self.E(batch_real_data))
-            L_adv_ED = softplus(self.D(self.E(self.G(self.F(batch_latent_vectors))))).mean() + softplus(-real_images_dicriminator_outputs).mean()
+        for epoch in range(self.epochs):
+            for batch_idx, batch_real_data in enumerate(train_loader):
+                batch_real_data = batch_real_data.requires_grad_(True).float()
+                # Step I. Update E, and D:  Optimize the discriminator D(E( * )) to better differentiate between real x data
+                # and data generated by G(F( * ))
+                ED_optimizer.zero_grad()
+                batch_latent_vectors = torch.tensor(np.random.normal(0,1,size=(self.batch_size, self.z_dim)), requires_grad=False, dtype=torch.float32)
+                real_images_dicriminator_outputs = self.D(self.E(batch_real_data))
+                L_adv_ED = softplus(self.D(self.E(self.G(self.F(batch_latent_vectors))))).mean() + softplus(-real_images_dicriminator_outputs).mean()
 
-            # R1 gradient regularization as in paper
-            real_grads = torch.autograd.grad(outputs=real_images_dicriminator_outputs, inputs=batch_real_data,
-                                             grad_outputs=torch.ones_like(real_images_dicriminator_outputs),
-                                             create_graph=True, retain_graph=True)[0]
-            gradient_penalty = 0.5 * ((real_grads.norm(2, dim=1) - 1) ** 2).mean()
-            L_adv_ED += gradient_penalty
+                # R1 gradient regularization as in paper
+                real_grads = torch.autograd.grad(outputs=real_images_dicriminator_outputs, inputs=batch_real_data,
+                                                 grad_outputs=torch.ones_like(real_images_dicriminator_outputs),
+                                                 create_graph=True, retain_graph=True)[0]
+                gradient_penalty = 0.5 * ((real_grads.norm(2, dim=1) - 1) ** 2).mean()
+                L_adv_ED += gradient_penalty * self.g_penalty_coeff
 
-            L_adv_ED.backward()
-            ED_optimizer.step()
+                L_adv_ED.backward()
+                ED_optimizer.step()
 
-            # Step II. Update F, and G: Optimize the generator G(F( * )) to fool D(E ( * ))
-            FG_optimizer.zero_grad()
-            batch_latent_vectors = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.z_dim)), requires_grad=False, dtype=torch.float32)
-            L_adv_FG = softplus(-self.D(self.E(self.G(self.F(batch_latent_vectors))))).mean()
-            L_adv_FG.backward()
-            FG_optimizer.step()
+                # Step II. Update F, and G: Optimize the generator G(F( * )) to fool D(E ( * ))
+                FG_optimizer.zero_grad()
+                batch_latent_vectors = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.z_dim)), requires_grad=False, dtype=torch.float32)
+                L_adv_FG = softplus(-self.D(self.E(self.G(self.F(batch_latent_vectors))))).mean()
+                L_adv_FG.backward()
+                FG_optimizer.step()
 
-            # Step III. Update E, and G: Optimize the reconstruction loss in the Latent space W
-            EG_optimizer.zero_grad()
-            batch_latent_vectors = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.z_dim)), requires_grad=False, dtype=torch.float32)
-            w_latent_vectors = self.F(batch_latent_vectors).detach()
-            L_err_EG = mse(w_latent_vectors, self.E(self.G(w_latent_vectors)))
-            L_err_EG.backward()
-            EG_optimizer.step()
+                # Step III. Update E, and G: Optimize the reconstruction loss in the Latent space W
+                EG_optimizer.zero_grad()
+                batch_latent_vectors = torch.tensor(np.random.normal(0, 1, size=(self.batch_size, self.z_dim)), requires_grad=False, dtype=torch.float32)
+                w_latent_vectors = self.F(batch_latent_vectors).detach()
+                L_err_EG = mse(w_latent_vectors, self.E(self.G(w_latent_vectors)))
+                L_err_EG.backward()
+                EG_optimizer.step()
 
-            losses[0] += [L_adv_ED.item()]
-            losses[1] += [L_adv_FG.item()]
-            losses[2] += [L_err_EG.item()]
+                losses[0] += [L_adv_ED.item()]
+                losses[1] += [L_adv_FG.item()]
+                losses[2] += [L_err_EG.item()]
 
-        # plot training
-        if plot_path:
-            plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], plot_path)
+            print(f"Epoch done {epoch}")
+            # plot training
+            if plot_dir:
+                plot_training(losses, ["ED_loss", "FG_loss", 'EG_loss'], os.path.join(plot_dir, f"Learning-{self}.png"))
 
         print(f"Finished in {time() - start:.2f} sec")
 
@@ -254,7 +286,7 @@ class LatentRegressor(EncoderDecoder):
         self.BCE_loss = nn.BCELoss()
         self.sigmoid = nn.Sigmoid()
 
-    def learn_encoder_decoder(self, data, plot_path=None):
+    def learn_encoder_decoder(self, data, plot_dir=None):
         start = time()
         print("\tLearning encoder decoder... ",end="")
         # Optimizers
@@ -301,8 +333,8 @@ class LatentRegressor(EncoderDecoder):
                 losses[3] += [self.regress_encoder(optimizer_E, z)]
 
         # plot training
-        if plot_path:
-            plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], plot_path)
+        if plot_dir:
+            plot_training(losses, ["g-loss", "D-real", 'd-fake', 'z-reconstruction'], os.path.join(plot_dir, f"Learning-{self}.png"))
 
         print(f"Finished in {time() - start:.2f} sec")
 

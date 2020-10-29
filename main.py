@@ -24,12 +24,12 @@ def get_autoencoders(data_dim, latent_dim, autoencoders_type):
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l2'),
             # LinearLatentRegressor(data_dim, latent_dim, optimization_steps=10000, lr=0.01, regressor_training="separate"),
             # LinearLatentRegressor(data_dim, latent_dim, optimization_steps=10000, lr=0.01, regressor_training="joint"),
-            LinearALAE(data_dim, latent_dim, optimization_steps=5000,lr=0.001, batch_size=128, z_dim=50),
+            LinearALAE(data_dim, latent_dim, epochs=10,lr=0.001, batch_size=128, z_dim=50),
             # IdentityAutoEncoder(data_dim, None)
         ]
     elif autoencoders_type == "MLP":
         autoencoders = [
-            ALAE(data_dim, latent_dim, optimization_steps=10000, lr=0.005, batch_size=128, z_dim=latent_dim)
+            ALAE(data_dim, latent_dim, epochs=300, lr=0.005, batch_size=128, z_dim=latent_dim)
         ]
     else:
         raise NotImplementedError
@@ -76,7 +76,7 @@ def main(args):
         print(ae)
 
         # Learn encoding on train data train on it and test on test encodings
-        ae.learn_encoder_decoder(train_data, os.path.join(output_dir,"Training-autoencoder", f"Learning-{ae}.png"))
+        ae.learn_encoder_decoder(train_data, os.path.join(output_dir,"Training-autoencoder"))
 
         start = time()
         print("\tProjecting Data... ", end="")
