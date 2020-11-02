@@ -2,7 +2,6 @@ from sklearn import datasets as sk_datasets
 import numpy as np
 import matplotlib.pyplot as plt
 from torchvision import datasets as tv_datasets
-from torch.utils.data import Dataset
 
 
 def get_swiss_roll(plot=False):
@@ -20,6 +19,7 @@ def get_swiss_roll(plot=False):
         ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=color, cmap=plt.cm.Spectral,s=0.6)
         plt.show()
     return X, color
+
 
 def get_mnist(data_dir="data"):
     train_dataset = tv_datasets.MNIST(data_dir, train=True, download=True)
