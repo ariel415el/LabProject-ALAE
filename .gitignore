@@ -1,7 +1,8 @@
 *idea/
 *__pycache__/
 .gitignore
-reproduce_ALAE/training_outputs_DATASET*/
+reproduce_ALAE/*/
 data/
 outputs*/
 Linear_encoding/outputs/
+understand_gan_training/
