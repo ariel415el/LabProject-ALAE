@@ -199,8 +199,8 @@ class LinearALAE(LinearAutoEncoder):
         self.ALAE = ALAE(data_dim, laten_dim, z_dim=z_dim, mode="Linear",
                          epochs=epochs, lr=lr, batch_size=batch_size)
 
-        self.name = "Linear-" + self.ALAE.name
         self.train_mean = None
+        self.name = "Linear-" + self.ALAE.name
 
     def learn_encoder_decoder(self, train_samples, plot_dir=None):
         self.train_mean = train_samples.mean(0)
@@ -217,6 +217,7 @@ class LinearALAE(LinearAutoEncoder):
 
     def decode(self, features):
         data = super(LinearALAE, self).decode(features)
+        data * 0.5 + 0.5
         return data + self.train_mean
 
 
@@ -246,4 +247,25 @@ class LinearLatentRegressor(LinearAutoEncoder):
 
     def decode(self, features):
         data = super(LinearLatentRegressor, self).decode(features)
+        return data + self.train_mean
+
+class PretrainedLinearAE(LinearAutoEncoder):
+    def __init__(self, data_dim, laten_dim, weights_path, name):
+        super(PretrainedLinearAE, self).__init__(data_dim, laten_dim)
+        x = torch.load(weights_path)
+        self.projection_matrix = x['E']['fc.weight'].T
+        self.restoration_matrix = x['G']['fc.weight'].T
+        self.train_mean = None
+        self.name = name
+
+    def learn_encoder_decoder(self, train_samples, plot_dir=None):
+        self.train_mean = train_samples.mean(0)
+
+    def encode(self, data):
+        zero_mean_data = data - self.train_mean
+        return super(PretrainedLinearAE, self).encode(zero_mean_data)
+
+    def decode(self, features):
+        data = super(PretrainedLinearAE, self).decode(features)
+        data * 0.5 + 0.5
         return data + self.train_mean

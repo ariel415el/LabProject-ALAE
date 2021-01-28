@@ -63,6 +63,37 @@ def visualize_classification(data, predictions, labels, plot_path):
     plt.clf()
 
 
+def plot_examples(autoencoders, data, N=10, plot_path=None):
+
+    im_dim = int(np.sqrt(len(data[0])))
+    os.makedirs(os.path.dirname(plot_path), exist_ok=True)
+    indices = np.random.randint(len(data), size=N)
+    fig = plt.figure()
+    for i in range(N):
+        sample = data[indices[i]]
+        ax = fig.add_subplot(2 + len(autoencoders), N, 1+i)
+        ax.imshow(sample.reshape(im_dim, im_dim), cmap='gray')
+        if i == N // 2:
+            ax.set_title(f"original", fontsize=10)
+        ax.set_xticks([])
+        ax.set_yticks([])
+    for j, ae in enumerate(autoencoders):
+        for i in range(N):
+            sample = data[indices[i]]
+            ax = fig.add_subplot(2 + len(autoencoders), N, 1 + (j + 1) * N + i)
+            reconstructed = ae.decode(ae.encode(sample)).reshape(im_dim, im_dim)
+            reconstructed = np.clip(reconstructed, 0, 1)
+            if i == N // 2:
+                ax.set_title(f"{ae}", fontsize=10)
+            ax.imshow(reconstructed, cmap='gray')
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+    plt.tight_layout()
+    plt.savefig(plot_path)
+    plt.clf()
+
+
 def plot_latent_interpolation(ae, data, N=5, plot_path=None):
     im_dim = int(np.sqrt(len(data[0])))
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)

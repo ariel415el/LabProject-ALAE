@@ -1,9 +1,9 @@
 import os
 from datasets import get_mnist, get_sklearn_digits
 from autoencoders import ALAE
-from utils import simple_logger, plot_tsne, plot_latent_interpolation
+from utils import simple_logger, plot_tsne, plot_latent_interpolation, plot_examples
 import argparse
-from Linear_encoding.linear_autoencoders import LinearVanilaAE ,LinearALAE, AnalyticalPCA
+from Linear_encoding.linear_autoencoders import LinearVanilaAE, LinearALAE, AnalyticalPCA, PretrainedLinearAE
 from evaluators import *
 
 
@@ -24,7 +24,8 @@ def get_autoencoders(data_dim, latent_dim, autoencoders_type):
             LinearVanilaAE(data_dim, latent_dim, optimization_steps=1000, metric='l2'),
             # LinearLatentRegressor(data_dim, latent_dim, optimization_steps=10000, lr=0.01, regressor_training="separate"),
             # LinearLatentRegressor(data_dim, latent_dim, optimization_steps=10000, lr=0.01, regressor_training="joint"),
-            LinearALAE(data_dim, latent_dim, epochs=10,lr=0.001, batch_size=128, z_dim=50),
+            # LinearALAE(data_dim, latent_dim, epochs=10,lr=0.001, batch_size=128, z_dim=50),
+            PretrainedLinearAE(data_dim, latent_dim, 'Linear_encoding/linearALAE-mnist-10.pth','LinearALAE')
             # IdentityAutoEncoder(data_dim, None)
         ]
     elif autoencoders_type == "MLP":
@@ -99,6 +100,7 @@ def main(args):
             plot_tsne(projected_test_data, test_labels, os.path.join(output_dir, "T-SNE", f"{ae}-Test.png"))
             print(f"Finished in {time() - start:.2f} sec")
 
+
         projected_data = (projected_train_data, projected_test_data)
         for evaluator in evaluation_methods:
             result_str = evaluator.evaluate(ae, data, projected_data,
@@ -106,13 +108,14 @@ def main(args):
             logger.log(f",{result_str}", end="")
         logger.log("")
 
+    plot_examples(autoencoders, test_data, plot_path=os.path.join(output_dir, "Test-reconstruction.png"))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default='digits')
+    parser.add_argument("--dataset", type=str, default='mnist')
     parser.add_argument("--mode", default='linear', help="Experiment and modes type: linear, MLP or conv")
-    parser.add_argument("--latent_dim", type=int, default=10)
+    parser.add_argument("--latent_dim", type=int, default=50)
     parser.add_argument("--plot_tsne", action='store_true', default=False)
     parser.add_argument("--plot_latent_interpolation", action='store_true', default=False)
 
