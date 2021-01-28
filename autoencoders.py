@@ -87,7 +87,8 @@ class VanilaAE(EncoderDecoder):
         self.optimization_steps = optimization_steps
         self.lr = lr
         self.batch_size = batch_size
-        self.name = f"VanilaAE({metric})_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]"
+        # self.name = f"VanilaAE({metric})_s[{optimization_steps}]_lr[{lr}]_b[{batch_size}]"
+        self.name = f"VanilaAE({metric})"
         self.metric = F.l1_loss if metric == 'l1' else F.mse_loss
         if mode == "Linear":
             self.E = torch.nn.Linear(data_dim, latent_dim, bias=False)
@@ -155,7 +156,8 @@ class ALAE(EncoderDecoder):
         self.g_penalty_coeff = g_penalty_coeff
         self.batch_size = batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.name = f"ALAE_z_dim[{z_dim}]_e[{epochs}]_lr[{lr}]_b[{batch_size}]"
+        # self.name = f"ALAE_z_dim[{z_dim}]_e[{epochs}]_lr[{lr}]_b[{batch_size}]"
+        self.name = f"ALAE_z_dim[{z_dim}]"
 
         if mode == "Linear":
             self.F = torch.nn.Linear(self.z_dim, latent_dim, bias=False)
